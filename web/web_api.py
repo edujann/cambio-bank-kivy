@@ -12059,8 +12059,53 @@ def _despacho_numero_para_ordem(ordem_id):
         return None
 
 
+def _auto_fechar_fechamento(fechamento_id):
+    """Fecha automaticamente um fechamento quando todos os despachos vinculados estão pagos."""
+    try:
+        fech_r = supabase.table('fx_fechamentos').select(
+            'id,status,taxa_usd_brl,valor_usd_estimado,parceiro_username'
+        ).eq('id', fechamento_id).single().execute()
+        if not fech_r.data or fech_r.data['status'] == 'fechado':
+            return
+        # Todos os despachos vinculados a este fechamento
+        df_r = supabase.table('despacho_fechamentos').select('despacho_id').eq('fechamento_id', fechamento_id).execute()
+        despacho_ids = [d['despacho_id'] for d in (df_r.data or [])]
+        if not despacho_ids:
+            return
+        desp_r = supabase.table('despachos').select('status').in_('id', despacho_ids).execute()
+        statuses = [d['status'] for d in (desp_r.data or [])]
+        if not statuses or any(s != 'pago' for s in statuses):
+            return
+        # Todos pagos — fechar o fechamento
+        usuario = session.get('username', 'auto')
+        now     = datetime.utcnow().isoformat()
+        supabase.table('fx_fechamentos').update(
+            {'status': 'fechado', 'updated_at': now}
+        ).eq('id', fechamento_id).execute()
+        # Registrar pool_venda (igual ao fechamento manual)
+        fdata  = fech_r.data
+        cob_r  = supabase.table('fx_coberturas').select('valor_usd,valor_gbp').eq('fechamento_id', fechamento_id).execute()
+        tot_usd = sum(float(c.get('valor_usd', 0)) for c in (cob_r.data or []))
+        tot_gbp = sum(float(c.get('valor_gbp', 0)) for c in (cob_r.data or []))
+        taxa_gbp_rec = round(tot_gbp / tot_usd, 6) if tot_usd > 0 else 0
+        supabase.table('pool_vendas').insert({
+            'data': now,
+            'moeda': 'USD',
+            'valor_vendido': tot_usd or float(fdata.get('valor_usd_estimado', 0)),
+            'moeda_recebida': 'BRL',
+            'parceiro': fdata.get('parceiro_username', ''),
+            'taxa_brl_unit': float(fdata.get('taxa_usd_brl', 0)),
+            'taxa_gbp_recebida': taxa_gbp_rec,
+            'pl_realizado_gbp': 0,
+            'executado_por': usuario,
+        }).execute()
+    except Exception:
+        pass
+
+
 def _auto_fechar_despacho(ordem_id):
-    """Se todas as ordens do despacho estiverem pagas, marca o despacho como pago automaticamente."""
+    """Se todas as ordens do despacho estiverem pagas, marca o despacho como pago automaticamente
+    e verifica se algum fechamento vinculado pode ser fechado."""
     try:
         lnk = supabase.table('despacho_ordens').select('despacho_id').eq('ordem_id', ordem_id).limit(1).execute()
         if not lnk.data:
@@ -12074,6 +12119,10 @@ def _auto_fechar_despacho(ordem_id):
         statuses = [o['status'] for o in (ordens_r.data or [])]
         if statuses and all(s == 'paga' for s in statuses):
             supabase.table('despachos').update({'status': 'pago'}).eq('id', despacho_id).execute()
+            # Verificar fechamentos vinculados para possível fechamento automático
+            df_r = supabase.table('despacho_fechamentos').select('fechamento_id').eq('despacho_id', despacho_id).execute()
+            for df in (df_r.data or []):
+                _auto_fechar_fechamento(df['fechamento_id'])
     except Exception:
         pass
 
@@ -12173,6 +12222,7 @@ def loja_confirmar_pagamento(ordem_id):
         }).eq('id', ordem_id).execute()
 
         _debitar_parceiro(o, ordem_id, usuario)
+        _auto_fechar_despacho(ordem_id)
 
         return jsonify({'success': True, 'message': 'Pagamento confirmado. Extrato do parceiro atualizado.'})
     except Exception as e:
@@ -16468,8 +16518,18 @@ def admin_listar_despachos():
                 o = ordens_dict.get(l['ordem_id'])
                 if o:
                     ordens_por_despacho[l['despacho_id']].append(o)
+            # Alocações FX por despacho
+            alocs_r = supabase.table('despacho_fechamentos')\
+                .select('despacho_id, fechamento_id, valor_usd, valor_brl, fx_fechamentos(taxa_usd_brl, taxa_gbp_brl_real, status)')\
+                .in_('despacho_id', ids).execute()
+            alocs_por_dep = defaultdict(list)
+            for a in (alocs_r.data or []):
+                alocs_por_dep[a['despacho_id']].append(a)
             for d in despachos:
                 d['ordens'] = ordens_por_despacho.get(d['id'], [])
+                d['alocacoes_fx'] = alocs_por_dep.get(d['id'], [])
+                total_brl_aloc = sum(float(a.get('valor_brl', 0)) for a in d['alocacoes_fx'])
+                d['brl_pendente'] = round(max(0, float(d.get('valor_total') or 0) - total_brl_aloc), 2)
         return jsonify({'success': True, 'despachos': despachos})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
@@ -16591,11 +16651,9 @@ def admin_criar_despacho():
         if not r_u.data or r_u.data.get('tipo') != 'admin':
             return jsonify({'success': False, 'message': 'Sem permissão'}), 403
         d = request.get_json()
-        ordem_ids    = d.get('ordem_ids', [])
-        parceiro     = (d.get('parceiro_pagador') or '').strip()
-        observacoes  = (d.get('observacoes') or '').strip()
-        fechamento_id = d.get('fechamento_id') or None
-        taxa_gbp_brl  = float(d.get('taxa_gbp_brl') or 0) or None
+        ordem_ids   = d.get('ordem_ids', [])
+        parceiro    = (d.get('parceiro_pagador') or '').strip()
+        observacoes = (d.get('observacoes') or '').strip()
         if not ordem_ids or not parceiro:
             return jsonify({'success': False, 'message': 'Selecione ordens e informe o parceiro.'}), 400
         # Buscar ordens selecionadas (inclui valor_entrada para calcular valor_gbp)
@@ -16618,7 +16676,6 @@ def admin_criar_despacho():
             'qtd_ordens':       len(ordens_data),
             'observacoes':      observacoes,
             'criado_por':       usuario,
-            'fechamento_id':    fechamento_id,
             'valor_gbp':        valor_gbp,
         }).execute()
         despacho_id  = ins.data[0]['id'] if ins.data else None
@@ -16633,18 +16690,29 @@ def admin_criar_despacho():
                 'status': 'despachada',
                 'parceiro_pagador': parceiro,
             }).eq('id', o['id']).execute()
-        # Se taxa_gbp_brl fornecida na criação, calcula P&L imediatamente
-        if taxa_gbp_brl and valor_gbp:
+        # Alocação automática FIFO nos fechamentos ativos do parceiro
+        alocacoes, brl_pendente = _alocar_despacho_fechamentos(despacho_id, parceiro, valor_total)
+        # Tentar calcular P&L imediatamente se já está totalmente coberto
+        pl_calculado = False
+        if alocacoes and valor_gbp:
             try:
-                _calcular_pl_despacho(despacho_id, taxa_gbp_brl, valor_gbp, valor_total, usuario)
+                pl_calculado = _verificar_pl_despacho(despacho_id, usuario)
             except Exception:
                 pass
+        msg = f'Despacho #{despacho_num} criado — {len(ordens_data)} ordens — {moeda_saida} {valor_total:,.2f}'
+        if alocacoes:
+            msg += f' | {len(alocacoes)} fechamento(s) alocado(s)'
+        if brl_pendente > 0.01:
+            msg += f' | R${brl_pendente:,.2f} aguardando próximo fechamento'
+        if pl_calculado:
+            msg += ' | P&L calculado'
         return jsonify({
             'success': True,
-            'message': f'Despacho #{despacho_num} criado — {len(ordens_data)} ordens — {moeda_saida} {valor_total:,.2f}',
+            'message': msg,
             'despacho_id': despacho_id,
             'despacho_numero': despacho_num,
             'valor_gbp': valor_gbp,
+            'brl_pendente': round(brl_pendente, 2),
         })
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
@@ -16724,6 +16792,149 @@ def _calcular_pl_despacho(despacho_id, taxa_gbp_brl, valor_gbp, valor_brl, usuar
             supabase.table('contas_contabeis').update({'saldo': float(r_cc.data['saldo'] or 0) + pl_abs, 'updated_at': datetime.now().isoformat()}).eq('id', r_cc.data['id']).execute()
 
     return round(lucro_gbp, 4), round(lucro_brl, 4)
+
+
+def _alocar_despacho_fechamentos(despacho_id, parceiro, valor_brl_total):
+    """
+    Aloca FIFO o valor BRL do despacho aos fechamentos ativos do parceiro.
+    Cria entradas em despacho_fechamentos e retorna (alocacoes, brl_pendente).
+    """
+    fech_r = supabase.table('fx_fechamentos')\
+        .select('id, taxa_usd_brl, valor_usd_estimado, taxa_gbp_brl_real')\
+        .eq('parceiro_username', parceiro)\
+        .in_('status', ['aberto', 'coberto'])\
+        .order('created_at').execute()
+    fechamentos = fech_r.data or []
+    if not fechamentos:
+        return [], valor_brl_total
+
+    fech_ids = [f['id'] for f in fechamentos]
+    aloc_r = supabase.table('despacho_fechamentos')\
+        .select('fechamento_id, valor_usd')\
+        .in_('fechamento_id', fech_ids).execute()
+    usd_alocado = {}
+    for a in (aloc_r.data or []):
+        fid = a['fechamento_id']
+        usd_alocado[fid] = usd_alocado.get(fid, 0) + float(a.get('valor_usd', 0))
+
+    pending_brl = float(valor_brl_total)
+    alocacoes   = []
+    primeiro_fid = None
+
+    for fech in fechamentos:
+        if pending_brl <= 0.01:
+            break
+        fid  = fech['id']
+        taxa = float(fech.get('taxa_usd_brl') or 0)
+        if taxa <= 0:
+            continue
+        usd_total    = float(fech.get('valor_usd_estimado') or 0)
+        usd_restante = max(0.0, usd_total - usd_alocado.get(fid, 0))
+        if usd_restante <= 0.01:
+            continue
+        brl_restante_fech = usd_restante * taxa
+        brl_alocar  = round(min(pending_brl, brl_restante_fech), 4)
+        usd_alocar  = round(brl_alocar / taxa, 4)
+        supabase.table('despacho_fechamentos').insert({
+            'despacho_id':   despacho_id,
+            'fechamento_id': fid,
+            'valor_usd':     usd_alocar,
+            'valor_brl':     brl_alocar,
+        }).execute()
+        if primeiro_fid is None:
+            primeiro_fid = fid
+        alocacoes.append({'fechamento_id': fid, 'valor_usd': usd_alocar, 'valor_brl': brl_alocar})
+        pending_brl = round(pending_brl - brl_alocar, 4)
+
+    if primeiro_fid:
+        supabase.table('despachos').update({'fechamento_id': primeiro_fid}).eq('id', despacho_id).execute()
+
+    return alocacoes, max(0.0, pending_brl)
+
+
+def _verificar_pl_despacho(despacho_id, usuario):
+    """
+    Calcula P&L com taxa média ponderada quando o despacho está 100% alocado
+    e todos os fechamentos vinculados têm taxa_gbp_brl_real definida.
+    Retorna True se o P&L foi calculado.
+    """
+    dep_r = supabase.table('despachos').select('valor_total, valor_gbp').eq('id', despacho_id).single().execute()
+    if not dep_r.data:
+        return False
+    valor_total_brl = float(dep_r.data.get('valor_total') or 0)
+    valor_gbp       = float(dep_r.data.get('valor_gbp') or 0)
+    if not valor_gbp:
+        return False
+
+    aloc_r = supabase.table('despacho_fechamentos')\
+        .select('fechamento_id, valor_usd, valor_brl').eq('despacho_id', despacho_id).execute()
+    alocacoes = aloc_r.data or []
+    if not alocacoes:
+        return False
+
+    total_brl_aloc = sum(float(a.get('valor_brl', 0)) for a in alocacoes)
+    if valor_total_brl - total_brl_aloc > 0.02:
+        return False  # ainda há BRL pendente
+
+    fech_ids = list({a['fechamento_id'] for a in alocacoes})
+    fech_r   = supabase.table('fx_fechamentos').select('id, taxa_gbp_brl_real').in_('id', fech_ids).execute()
+    taxa_real = {f['id']: float(f.get('taxa_gbp_brl_real') or 0) for f in (fech_r.data or [])}
+
+    if any(taxa_real.get(fid, 0) <= 0 for fid in fech_ids):
+        return False  # algum fechamento ainda sem cobertura
+
+    total_usd = sum(float(a.get('valor_usd', 0)) for a in alocacoes)
+    if total_usd <= 0:
+        return False
+
+    taxa_pond = sum(float(a.get('valor_usd', 0)) * taxa_real.get(a['fechamento_id'], 0) for a in alocacoes) / total_usd
+    _calcular_pl_despacho(despacho_id, taxa_pond, valor_gbp, valor_total_brl, usuario)
+    return True
+
+
+def _alocar_despachos_pendentes(fechamento_id, parceiro, taxa_usd_brl, valor_usd_estimado, usuario):
+    """
+    Quando um novo fechamento é criado, aloca FIFO os despachos com BRL pendente do parceiro.
+    """
+    deps_r = supabase.table('despachos').select('id, valor_total, valor_gbp')\
+        .eq('parceiro_pagador', parceiro).eq('status', 'enviado').order('created_at').execute()
+    deps = deps_r.data or []
+    if not deps:
+        return
+
+    dep_ids = [d['id'] for d in deps]
+    aloc_r  = supabase.table('despacho_fechamentos').select('despacho_id, valor_brl').in_('despacho_id', dep_ids).execute()
+    brl_aloc = {}
+    for a in (aloc_r.data or []):
+        did = a['despacho_id']
+        brl_aloc[did] = brl_aloc.get(did, 0) + float(a.get('valor_brl', 0))
+
+    # Capacidade disponível no novo fechamento
+    aloc_fech_r   = supabase.table('despacho_fechamentos').select('valor_usd').eq('fechamento_id', fechamento_id).execute()
+    usd_ja_aloc   = sum(float(a.get('valor_usd', 0)) for a in (aloc_fech_r.data or []))
+    usd_disponivel = float(valor_usd_estimado) - usd_ja_aloc
+
+    for dep in deps:
+        if usd_disponivel <= 0.01:
+            break
+        total_brl   = float(dep.get('valor_total') or 0)
+        pending_brl = round(total_brl - brl_aloc.get(dep['id'], 0), 4)
+        if pending_brl <= 0.01:
+            continue
+        brl_cap  = usd_disponivel * taxa_usd_brl
+        brl_alocar = round(min(pending_brl, brl_cap), 4)
+        usd_alocar = round(brl_alocar / taxa_usd_brl, 4)
+        try:
+            supabase.table('despacho_fechamentos').insert({
+                'despacho_id':   dep['id'],
+                'fechamento_id': fechamento_id,
+                'valor_usd':     usd_alocar,
+                'valor_brl':     brl_alocar,
+            }).execute()
+        except Exception:
+            pass  # conflito de unique — já alocado
+        usd_disponivel -= usd_alocar
+        _verificar_pl_despacho(dep['id'], usuario)
 
 
 @app.route('/api/admin/despachos/<despacho_id>/taxa-pl', methods=['PATCH'])
@@ -16915,6 +17126,7 @@ def admin_confirmar_pagamento_ordem(ordem_id):
             'updated_at': datetime.now().isoformat(),
         }).eq('id', ordem_id).execute()
         _debitar_parceiro(o, ordem_id, usuario)
+        _auto_fechar_despacho(ordem_id)
         return jsonify({'success': True, 'message': 'Pagamento confirmado.'})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
@@ -20978,6 +21190,16 @@ def fx_pool():
                 m = (p.get('moeda_destino') or '').upper()
                 if m:
                     comprometidos[m] = comprometidos.get(m, 0) + float(p.get('valor_destino') or 0)
+        # USD comprometido em fechamentos ATIVOS (aberto/coberto) — exclui fechados
+        since_n = _norm_dt(since)
+        fech_ativos_r = supabase.table('fx_fechamentos').select('id').in_('status', ['aberto', 'coberto']).execute()
+        fech_ativos_ids = {f['id'] for f in (fech_ativos_r.data or [])}
+        cob_fech_r = supabase.table('fx_coberturas').select('valor_usd,created_at,fechamento_id').execute()
+        usd_fech = sum(
+            float(c.get('valor_usd', 0)) for c in (cob_fech_r.data or [])
+            if c.get('fechamento_id') in fech_ativos_ids
+            and (not since_n or _norm_dt(c.get('created_at', '')) >= since_n)
+        )
         moedas = sorted(set(list(wac.keys()) + list(saldos.keys())) - {'BRL'})
         usd_gbp = float(rates.get('USD_GBP', 0.79))
         usd_brl = float(rates.get('USD_BRL', 5.20))
@@ -20989,6 +21211,7 @@ def fx_pool():
             market_gbp = _fx_to_gbp(1, moeda, rates)
             saldo = saldos.get(moeda, 0)
             comp = comprometidos.get(moeda, 0)
+            comp_fech = usd_fech if moeda == 'USD' else 0
             saldo_pool = vol.get(moeda, 0)
             is_short = saldo_pool < 0
             resultado.append({
@@ -21001,6 +21224,8 @@ def fx_pool():
                 'market_gbp': round(market_gbp, 6),
                 'saldo_empresa': round(saldo, 2),
                 'comprometido': round(comp, 2),
+                'comprometido_fechamentos': round(comp_fech, 2),
+                'disponivel_pool': round(max(0, saldo_pool - comp_fech), 2),
                 'disponivel': round(saldo - comp, 2),
                 'short': is_short,
             })
@@ -21475,7 +21700,43 @@ def fx_registrar_venda():
 # ============================================================
 #  FX FECHAMENTOS & COBERTURAS
 # ============================================================
-# Requires: migrations/002_fx_fechamentos.sql
+# Requires: migrations/002_fx_fechamentos.sql + 003_fx_lote_cobertura.sql
+
+
+@app.route('/api/admin/fx/pool/disponivel-usd', methods=['GET'])
+def fx_pool_disponivel_usd():
+    """Retorna USD disponível no pool = total comprado - total alocado em fechamentos."""
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({'success': False}), 401
+        since  = _fx_ultimo_reset()
+        compras_r = supabase.table('pool_compras').select('*').order('data').execute()
+        vendas_r  = supabase.table('pool_vendas').select('moeda,valor_vendido,data,created_at').order('data').execute()
+        wac, vol  = _fx_wac(compras_r.data, vendas_r.data, since=since)
+        wac_usd   = wac.get('USD', 0)
+
+        # USD alocado em fechamentos ATIVOS (aberto/coberto) — exclui fechados
+        since_n = _norm_dt(since)
+        fech_ativos_r = supabase.table('fx_fechamentos').select('id').in_('status', ['aberto', 'coberto']).execute()
+        fech_ativos_ids = {f['id'] for f in (fech_ativos_r.data or [])}
+        cob_r = supabase.table('fx_coberturas').select('valor_usd,fechamento_id,created_at').execute()
+        total_alocado = sum(
+            float(c.get('valor_usd', 0)) for c in (cob_r.data or [])
+            if c.get('fechamento_id') in fech_ativos_ids
+            and (not since_n or _norm_dt(c.get('created_at', '')) >= since_n)
+        )
+        total_pool = vol.get('USD', 0)
+        disponivel = max(0.0, total_pool - total_alocado)
+        return jsonify({
+            'success': True,
+            'total_pool_usd': round(total_pool, 2),
+            'total_alocado_usd': round(total_alocado, 2),
+            'disponivel_usd': round(disponivel, 2),
+            'wac_gbp_usd': round(wac_usd, 6),
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/fx/fechamentos', methods=['GET'])
@@ -21510,6 +21771,7 @@ def fx_listar_fechamentos():
 def fx_criar_fechamento():
     try:
         from datetime import datetime
+        import random
         usuario = session.get('username')
         if not usuario:
             return jsonify({'success': False, 'message': 'Não autenticado'}), 401
@@ -21531,8 +21793,45 @@ def fx_criar_fechamento():
             'created_at': now, 'updated_at': now,
         }).execute()
         fid = ins.data[0]['id'] if ins.data else None
+
+        # ── Lançar nas contas do parceiro (BRL débito / USD crédito) ──────────
+        valor_brl = round(valor_usd * taxa_usd_brl, 4)
+        try:
+            contas_r = supabase.table('contas').select('id,moeda,saldo').eq('cliente_username', parceiro).execute()
+            contas_p = contas_r.data or []
+            brl_c = next((c for c in contas_p if (c.get('moeda') or '').upper() == 'BRL'), None)
+            usd_c = next((c for c in contas_p if (c.get('moeda') or '').upper() == 'USD'), None)
+            if brl_c and usd_c:
+                supabase.table('contas').update({'saldo': float(brl_c['saldo'] or 0) - valor_brl}).eq('id', brl_c['id']).execute()
+                supabase.table('contas').update({'saldo': float(usd_c['saldo'] or 0) + valor_usd}).eq('id', usd_c['id']).execute()
+                tid = str(random.randint(100000, 999999))
+                while supabase.table('transferencias').select('id').eq('id', tid).execute().data:
+                    tid = str(random.randint(100000, 999999))
+                taxa_fmt = f"{taxa_usd_brl:.6f}"
+                supabase.table('transferencias').insert({
+                    'id': tid, 'tipo': 'cambio', 'status': 'completed',
+                    'data': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'moeda': 'BRL', 'valor': valor_brl,
+                    'conta_remetente': brl_c['id'], 'conta_destinatario': usd_c['id'],
+                    'descricao': 'CÂMBIO ADMIN - BRL → USD',
+                    'executado_por': usuario, 'cliente': parceiro, 'usuario': usuario,
+                    'operacao': 'cambio_admin', 'par_moedas': 'BRL_USD',
+                    'valor_origem': valor_brl, 'valor_destino': valor_usd,
+                    'cotacao': taxa_fmt, 'moeda_origem': 'BRL', 'moeda_destino': 'USD',
+                    'tipo_taxa_usada': 'principal', 'taxa_principal_registro': taxa_fmt,
+                    'created_at': datetime.now().isoformat(),
+                }).execute()
+        except Exception:
+            pass  # conta entries are best-effort; fechamento already created
+
+        # Alocar despachos pendentes do parceiro neste novo fechamento
+        try:
+            _alocar_despachos_pendentes(fid, parceiro, taxa_usd_brl, valor_usd, usuario)
+        except Exception:
+            pass
+
         return jsonify({'success': True, 'id': fid,
-                        'message': f'Fechamento criado — {parceiro} @ {taxa_usd_brl:.4f} USD/BRL'})
+                        'message': f'Fechamento criado — {parceiro} @ {taxa_usd_brl:.4f} USD/BRL | Saldos do parceiro atualizados'})
     except Exception as e:
         _sec_log.debug('traceback suprimido em producao', exc_info=_IS_DEBUG)
         return jsonify({'success': False, 'message': _err(e)}), 500
@@ -21566,7 +21865,7 @@ def fx_atualizar_fechamento(fechamento_id):
                 total_gbp = sum(float(c.get('valor_gbp', 0)) for c in (cob_r.data or []))
                 taxa_gbp_rec = round(total_gbp / total_usd, 6) if total_usd > 0 else 0
                 supabase.table('pool_vendas').insert({
-                    'data': datetime.utcnow().isoformat(),
+                    'data': datetime.now().isoformat(),
                     'moeda': 'USD',
                     'valor_vendido': total_usd or float(fdata.get('valor_usd_estimado', 0)),
                     'moeda_recebida': 'BRL',
@@ -21575,7 +21874,6 @@ def fx_atualizar_fechamento(fechamento_id):
                     'taxa_gbp_recebida': taxa_gbp_rec,
                     'pl_realizado_gbp': 0,
                     'executado_por': usuario,
-                    'observacoes': f"Fechamento {str(fechamento_id)[:8].upper()} encerrado",
                 }).execute()
         return jsonify({'success': True, 'message': 'Fechamento atualizado'})
     except Exception as e:
@@ -21585,79 +21883,253 @@ def fx_atualizar_fechamento(fechamento_id):
 
 @app.route('/api/admin/fx/coberturas', methods=['POST'])
 def fx_registrar_cobertura():
-    """Cobertura: compra de USD para cobrir fechamento. Cria pool_compras (WAC) + fx_coberturas."""
+    """Cobertura: compra de USD do banco. Suporta alocação para múltiplos fechamentos + sobra ao pool."""
     try:
         from datetime import datetime
+        import uuid, random
         usuario = session.get('username')
         if not usuario:
             return jsonify({'success': False, 'message': 'Não autenticado'}), 401
         ck = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
         if not ck.data or ck.data.get('tipo') != 'admin':
             return jsonify({'success': False, 'message': 'Acesso negado'}), 403
-        d = request.get_json()
-        fechamento_id = d.get('fechamento_id') or None
-        valor_usd     = float(d.get('valor_usd') or 0)
-        valor_gbp     = float(d.get('valor_gbp') or 0)
-        taxa_gbp_usd  = float(d.get('taxa_gbp_usd') or (valor_gbp / valor_usd if valor_usd else 0))
-        conta_deb     = (d.get('conta_debitada') or '').strip()
-        conta_cred    = (d.get('conta_creditada') or '').strip()
-        obs           = (d.get('observacoes') or '').strip()
+        d         = request.get_json()
+        valor_usd = float(d.get('valor_usd') or 0)
+        valor_gbp = float(d.get('valor_gbp') or 0)
+        conta_deb = (d.get('conta_debitada') or '').strip()
+        conta_cred= (d.get('conta_creditada') or '').strip()
+        obs       = (d.get('observacoes') or '').strip()
         if valor_usd <= 0 or valor_gbp <= 0:
             return jsonify({'success': False, 'message': 'Valor USD e Valor GBP são obrigatórios'}), 400
         if not conta_deb or not conta_cred:
             return jsonify({'success': False, 'message': 'Conta debitada e creditada são obrigatórias'}), 400
-        now = datetime.utcnow().isoformat()
-        # 1. pool_compras — keeps WAC working
-        pool_rec = {
+
+        # ── Alocações: nova API (lista) ou retrocompat (fechamento_id único) ──
+        alocacoes = d.get('alocacoes')
+        if not alocacoes:
+            fid_legado = d.get('fechamento_id') or None
+            alocacoes  = [{'fechamento_id': fid_legado, 'valor_usd': valor_usd}]
+
+        # Validar soma
+        total_aloc = round(sum(float(a.get('valor_usd', 0)) for a in alocacoes), 2)
+        if abs(total_aloc - round(valor_usd, 2)) > 0.02:
+            return jsonify({'success': False,
+                            'message': f'Total alocado ({total_aloc:.2f} USD) ≠ valor comprado ({valor_usd:.2f} USD)'}), 400
+
+        # ── Buscar contas ────────────────────────────────────────────────────
+        r_deb  = supabase.table('contas_bancarias_empresa').select('saldo,moeda').eq('numero', conta_deb).single().execute()
+        r_cred = supabase.table('contas_bancarias_empresa').select('saldo,moeda').eq('numero', conta_cred).single().execute()
+        if not r_deb.data:
+            return jsonify({'success': False, 'message': f'Conta debitada {conta_deb} não encontrada'}), 404
+        if not r_cred.data:
+            return jsonify({'success': False, 'message': f'Conta creditada {conta_cred} não encontrada'}), 404
+        moeda_deb  = r_deb.data.get('moeda', 'GBP')
+        moeda_cred = r_cred.data.get('moeda', 'USD')
+
+        now      = datetime.utcnow().isoformat()
+        lote_id  = str(uuid.uuid4())
+        taxa_gup = round(valor_gbp / valor_usd, 6)   # GBP por USD
+
+        # ── 1. pool_compras (entrada WAC — compra inteira) ───────────────────
+        pool_ins = supabase.table('pool_compras').insert({
             'data': now, 'moeda_comprada': 'USD', 'valor_comprado': valor_usd,
             'moeda_paga': 'GBP', 'valor_pago': valor_gbp,
             'taxa': round(valor_usd / valor_gbp, 6),
-            'taxa_em_gbp': round(taxa_gbp_usd, 6),
+            'taxa_em_gbp': taxa_gup,
             'fornecedor': obs or 'Cobertura FX',
             'conta_debitada': conta_deb, 'conta_creditada': conta_cred,
             'executado_por': usuario, 'observacoes': obs,
-        }
-        pool_ins = supabase.table('pool_compras').insert(pool_rec).execute()
-        pool_id  = pool_ins.data[0]['id'] if pool_ins.data else None
-        # 2. Update account balances
-        r_deb = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_deb).single().execute()
-        if not r_deb.data:
-            return jsonify({'success': False, 'message': f'Conta {conta_deb} não encontrada'}), 404
-        r_cred = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_cred).single().execute()
-        if not r_cred.data:
-            return jsonify({'success': False, 'message': f'Conta {conta_cred} não encontrada'}), 404
-        supabase.table('contas_bancarias_empresa').update({'saldo': float(r_deb.data['saldo'] or 0) - valor_gbp}).eq('numero', conta_deb).execute()
-        supabase.table('contas_bancarias_empresa').update({'saldo': float(r_cred.data['saldo'] or 0) + valor_usd}).eq('numero', conta_cred).execute()
-        # 3. fx_coberturas
-        supabase.table('fx_coberturas').insert({
-            'fechamento_id': fechamento_id, 'tipo': d.get('tipo', 'compra_banco'),
-            'valor_usd': valor_usd, 'valor_gbp': valor_gbp,
-            'taxa_gbp_usd': round(taxa_gbp_usd, 6),
-            'conta_debitada': conta_deb, 'conta_creditada': conta_cred,
-            'executado_por': usuario, 'observacoes': obs,
-            'pool_compra_id': str(pool_id) if pool_id else None,
-            'created_at': now,
         }).execute()
-        # 4. Update fechamento: recalculate taxa_gbp_brl_real + auto status → coberto
-        if fechamento_id:
-            f_r = supabase.table('fx_fechamentos').select('valor_usd_estimado,taxa_usd_brl,status').eq('id', fechamento_id).single().execute()
-            if f_r.data:
-                all_cob = supabase.table('fx_coberturas').select('valor_usd,valor_gbp').eq('fechamento_id', fechamento_id).execute()
-                tot_usd = sum(float(c.get('valor_usd', 0)) for c in (all_cob.data or []))
-                tot_gbp = sum(float(c.get('valor_gbp', 0)) for c in (all_cob.data or []))
-                taxa_u_brl = float(f_r.data.get('taxa_usd_brl', 0))
-                f_upd = {'updated_at': now}
-                if tot_gbp > 0 and taxa_u_brl > 0:
-                    # 1 GBP buys (tot_usd/tot_gbp) USD, each USD worth taxa_usd_brl BRL
-                    f_upd['taxa_gbp_brl_real'] = round((tot_usd / tot_gbp) * taxa_u_brl, 4)
-                val_est = float(f_r.data.get('valor_usd_estimado', 0))
-                if f_r.data['status'] == 'aberto' and val_est > 0 and tot_usd >= val_est * 0.95:
-                    f_upd['status'] = 'coberto'
-                supabase.table('fx_fechamentos').update(f_upd).eq('id', fechamento_id).execute()
-        return jsonify({'success': True,
-                        'message': f'Cobertura registrada: {valor_usd:.2f} USD @ {taxa_gbp_usd:.6f} GBP/USD (£{valor_gbp:.2f})'})
+        pool_id = pool_ins.data[0]['id'] if pool_ins.data else None
+
+        # ── 2. Saldos das contas bancárias (operação inteira de uma vez) ─────
+        supabase.table('contas_bancarias_empresa').update(
+            {'saldo': float(r_deb.data['saldo'] or 0) - valor_gbp}
+        ).eq('numero', conta_deb).execute()
+        supabase.table('contas_bancarias_empresa').update(
+            {'saldo': float(r_cred.data['saldo'] or 0) + valor_usd}
+        ).eq('numero', conta_cred).execute()
+
+        # ── 3. transferencias (extrato das contas da empresa) ────────────────
+        tid = str(random.randint(100000, 999999)) + '_cb'
+        while supabase.table('transferencias').select('id').eq('id', tid).execute().data:
+            tid = str(random.randint(100000, 999999)) + '_cb'
+        n_fech = len([a for a in alocacoes if a.get('fechamento_id')])
+        sobra  = round(sum(float(a.get('valor_usd', 0)) for a in alocacoes if not a.get('fechamento_id')), 2)
+        desc_transf = (f'COBERTURA FX — {valor_usd:.2f} USD @ {taxa_gup:.6f} GBP/USD | '
+                       f'{n_fech} fechamento(s)' + (f' | Sobra pool: {sobra:.2f} USD' if sobra > 0 else ''))
+        supabase.table('transferencias').insert({
+            'id': tid, 'tipo': 'cambio_contas_empresa', 'status': 'completed',
+            'data': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+            'moeda_origem': moeda_deb, 'moeda_destino': moeda_cred,
+            'valor_origem': valor_gbp, 'valor_destino': valor_usd,
+            'taxa_cambio': round(valor_usd / valor_gbp, 6),
+            'taxa_principal_registro': round(valor_usd / valor_gbp, 6),
+            'conta_origem': conta_deb, 'conta_destino': conta_cred,
+            'descricao': desc_transf,
+            'usuario': usuario, 'executado_por': usuario,
+            'created_at': datetime.utcnow().isoformat(),
+        }).execute()
+
+        # ── 4. fx_coberturas por alocação + atualizar cada fechamento ────────
+        for aloc in alocacoes:
+            fid_aloc  = aloc.get('fechamento_id') or None
+            usd_aloc  = float(aloc.get('valor_usd', 0))
+            if usd_aloc <= 0:
+                continue
+            gbp_aloc  = round((usd_aloc / valor_usd) * valor_gbp, 4)
+            taxa_aloc = round(gbp_aloc / usd_aloc, 6) if usd_aloc > 0 else taxa_gup
+            tipo_aloc = 'compra_banco' if fid_aloc else 'pool_sobra'
+            supabase.table('fx_coberturas').insert({
+                'fechamento_id': fid_aloc, 'tipo': tipo_aloc,
+                'valor_usd': usd_aloc, 'valor_gbp': gbp_aloc,
+                'taxa_gbp_usd': taxa_aloc,
+                'conta_debitada': conta_deb, 'conta_creditada': conta_cred,
+                'executado_por': usuario, 'observacoes': obs,
+                'pool_compra_id': str(pool_id) if pool_id else None,
+                'lote_cobertura_id': lote_id,
+                'created_at': now,
+            }).execute()
+            if not fid_aloc:
+                continue
+            # Recalcular taxa_gbp_brl_real e status do fechamento
+            f_r = supabase.table('fx_fechamentos').select(
+                'valor_usd_estimado,taxa_usd_brl,status').eq('id', fid_aloc).single().execute()
+            if not f_r.data:
+                continue
+            all_cob = supabase.table('fx_coberturas').select('valor_usd,valor_gbp').eq(
+                'fechamento_id', fid_aloc).execute()
+            tot_usd = sum(float(c.get('valor_usd', 0)) for c in (all_cob.data or []))
+            tot_gbp = sum(float(c.get('valor_gbp', 0)) for c in (all_cob.data or []))
+            taxa_u_brl = float(f_r.data.get('taxa_usd_brl', 0))
+            f_upd = {'updated_at': now}
+            if tot_gbp > 0 and taxa_u_brl > 0:
+                f_upd['taxa_gbp_brl_real'] = round((tot_usd / tot_gbp) * taxa_u_brl, 4)
+            val_est = float(f_r.data.get('valor_usd_estimado', 0))
+            if f_r.data['status'] == 'aberto' and val_est > 0 and tot_usd >= val_est * 0.95:
+                f_upd['status'] = 'coberto'
+            supabase.table('fx_fechamentos').update(f_upd).eq('id', fid_aloc).execute()
+            # Disparar cálculo de P&L nos despachos vinculados a este fechamento
+            if 'taxa_gbp_brl_real' in f_upd:
+                try:
+                    dep_aloc_r = supabase.table('despacho_fechamentos').select('despacho_id').eq('fechamento_id', fid_aloc).execute()
+                    for da in (dep_aloc_r.data or []):
+                        _verificar_pl_despacho(da['despacho_id'], usuario)
+                except Exception:
+                    pass
+
+        msg_parts = [f'{valor_usd:.2f} USD @ £{valor_gbp:.2f} ({taxa_gup:.6f} GBP/USD)']
+        if n_fech:
+            msg_parts.append(f'{n_fech} fechamento(s) coberto(s)')
+        if sobra > 0:
+            msg_parts.append(f'Sobra: {sobra:.2f} USD → pool')
+        return jsonify({'success': True, 'message': ' | '.join(msg_parts), 'lote_id': lote_id})
     except Exception as e:
         _sec_log.debug('traceback suprimido em producao', exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/admin/fx/coberturas/from-pool', methods=['POST'])
+def fx_coberturas_from_pool():
+    """Realoca USD livre do pool para um fechamento usando o WAC atual como taxa de custo.
+    Não cria pool_compra (o USD já foi contabilizado) — apenas compromete o disponível."""
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+        ck = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not ck.data or ck.data.get('tipo') != 'admin':
+            return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+
+        d             = request.get_json()
+        fechamento_id = (d.get('fechamento_id') or '').strip()
+        valor_usd     = float(d.get('valor_usd') or 0)
+        obs           = (d.get('observacoes') or '').strip()
+
+        if not fechamento_id:
+            return jsonify({'success': False, 'message': 'fechamento_id é obrigatório'}), 400
+        if valor_usd <= 0:
+            return jsonify({'success': False, 'message': 'Valor USD deve ser maior que zero'}), 400
+
+        # Verificar fechamento
+        fech_r = supabase.table('fx_fechamentos').select(
+            'id,status,taxa_usd_brl,valor_usd_estimado'
+        ).eq('id', fechamento_id).single().execute()
+        if not fech_r.data:
+            return jsonify({'success': False, 'message': 'Fechamento não encontrado'}), 404
+        if fech_r.data['status'] == 'fechado':
+            return jsonify({'success': False, 'message': 'Fechamento já está fechado'}), 400
+
+        # Calcular pool disponível e WAC
+        since     = _fx_ultimo_reset()
+        since_n   = _norm_dt(since)
+        compras_r = supabase.table('pool_compras').select('*').order('data').execute()
+        vendas_r  = supabase.table('pool_vendas').select('moeda,valor_vendido,data,created_at').order('data').execute()
+        wac, vol  = _fx_wac(compras_r.data, vendas_r.data, since=since)
+        wac_usd   = wac.get('USD', 0)
+
+        fech_ativos_r   = supabase.table('fx_fechamentos').select('id').in_('status', ['aberto', 'coberto']).execute()
+        fech_ativos_ids = {f['id'] for f in (fech_ativos_r.data or [])}
+        cob_r = supabase.table('fx_coberturas').select('valor_usd,fechamento_id,created_at').execute()
+        total_alocado = sum(
+            float(c.get('valor_usd', 0)) for c in (cob_r.data or [])
+            if c.get('fechamento_id') in fech_ativos_ids
+            and (not since_n or _norm_dt(c.get('created_at', '')) >= since_n)
+        )
+        disponivel = max(0.0, vol.get('USD', 0) - total_alocado)
+
+        if valor_usd > disponivel + 0.01:
+            return jsonify({'success': False,
+                            'message': f'Solicitado {valor_usd:.2f} USD excede pool disponível ({disponivel:.2f} USD)'}), 400
+        if wac_usd <= 0:
+            return jsonify({'success': False, 'message': 'WAC do pool é zero — sem compras no ciclo atual'}), 400
+
+        valor_gbp = round(valor_usd * wac_usd, 4)
+        now       = datetime.utcnow().isoformat()
+
+        # Criar fx_cobertura SEM criar pool_compra (USD já está contabilizado)
+        supabase.table('fx_coberturas').insert({
+            'fechamento_id': fechamento_id,
+            'tipo': 'pool_realloc',
+            'valor_usd': valor_usd,
+            'valor_gbp': valor_gbp,
+            'taxa_gbp_usd': round(wac_usd, 6),
+            'executado_por': usuario,
+            'observacoes': f'[POOL] {obs}' if obs else '[POOL] Realocação do pool',
+            'created_at': now,
+        }).execute()
+
+        # Recalcular taxa_gbp_brl_real e status do fechamento
+        taxa_u_brl = float(fech_r.data.get('taxa_usd_brl', 0))
+        all_cob    = supabase.table('fx_coberturas').select('valor_usd,valor_gbp').eq(
+            'fechamento_id', fechamento_id).execute()
+        tot_usd = sum(float(c.get('valor_usd', 0)) for c in (all_cob.data or []))
+        tot_gbp = sum(float(c.get('valor_gbp', 0)) for c in (all_cob.data or []))
+        f_upd = {'updated_at': now}
+        if tot_gbp > 0 and taxa_u_brl > 0:
+            f_upd['taxa_gbp_brl_real'] = round((tot_usd / tot_gbp) * taxa_u_brl, 4)
+        val_est = float(fech_r.data.get('valor_usd_estimado', 0))
+        if fech_r.data['status'] == 'aberto' and val_est > 0 and tot_usd >= val_est * 0.95:
+            f_upd['status'] = 'coberto'
+        supabase.table('fx_fechamentos').update(f_upd).eq('id', fechamento_id).execute()
+
+        if 'taxa_gbp_brl_real' in f_upd:
+            try:
+                dep_aloc_r = supabase.table('despacho_fechamentos').select('despacho_id').eq(
+                    'fechamento_id', fechamento_id).execute()
+                for da in (dep_aloc_r.data or []):
+                    _verificar_pl_despacho(da['despacho_id'], usuario)
+            except Exception:
+                pass
+
+        return jsonify({
+            'success': True,
+            'message': (f'{valor_usd:.2f} USD realocados do pool → fechamento '
+                        f'(WAC {wac_usd:.6f} GBP/USD = £{valor_gbp:.2f})'),
+            'valor_gbp': valor_gbp,
+            'wac_usado': wac_usd,
+        })
+    except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 
 

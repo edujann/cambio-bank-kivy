@@ -201,8 +201,8 @@
                     </div>
                 </div>
                 <div class="preview-box" id="fPreviewBox" style="display:none">
-                    <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Parceiro recebe:</span><span id="fPvBrl" style="font-weight:700;color:var(--cor-sucesso)"></span></div>
-                    <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Empresa entrega:</span><span id="fPvUsd" style="font-weight:700;color:var(--cor-alerta)"></span></div>
+                    <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Parceiro entrega (via remessas):</span><span id="fPvBrl" style="font-weight:700;color:var(--cor-alerta)"></span></div>
+                    <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Empresa entrega (USD):</span><span id="fPvUsd" style="font-weight:700;color:var(--cor-sucesso)"></span></div>
                 </div>
                 <button class="btn-primary" id="btnCriarFech" onclick="criarFechamento()">
                     <i class="fas fa-handshake"></i> Criar Fechamento
@@ -238,57 +238,119 @@
         </div>
     </div>
 
-    <!-- TAB: COBERTURA (formerly Comprar) -->
+    <!-- TAB: COBERTURA -->
     <div id="tab-cobrir" class="tab-content">
-        <div class="form-card">
-            <div class="form-section-title"><i class="fas fa-shield-alt"></i> Cobertura — Compra de USD do Banco</div>
+        <!-- Banner pool disponível -->
+        <div id="cobPoolBanner" style="display:none;margin-bottom:16px;padding:12px 18px;background:rgba(46,194,126,.07);border:1px solid rgba(46,194,126,.25);border-radius:10px;font-size:13px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+            <span><i class="fas fa-warehouse" style="color:var(--cor-sucesso);margin-right:6px;"></i><strong>Pool USD disponível:</strong> <span id="cobPoolDisp" class="mono verde" style="font-size:15px;font-weight:700">—</span></span>
+            <span style="color:var(--cor-texto-secundario)">WAC: <span id="cobPoolWac" class="mono">—</span> GBP/USD</span>
+        </div>
 
-            <div class="form-group" style="margin-bottom:16px">
-                <label>Vincular a Fechamento <small style="color:var(--cor-texto-secundario)">(opcional — auto-calcula taxa GBP/BRL real)</small></label>
-                <select id="fcFechamento" class="form-control" onchange="onFechamentoCobChange()">
-                    <option value="">Sem vínculo (compra avulsa de pool)</option>
-                </select>
-            </div>
-            <div id="fcFechInfo" style="display:none;margin-bottom:16px;padding:10px 14px;background:rgba(210,158,0,.07);border:1px solid rgba(210,158,0,.2);border-radius:8px;font-size:12px;"></div>
-
+        <div class="form-card" style="max-width:860px">
+            <div class="form-section-title"><i class="fas fa-university"></i> Compra no Banco</div>
             <div class="form-grid">
                 <div class="form-group">
                     <label>Valor USD Comprado *</label>
-                    <input id="fcValorUsd" type="number" step="0.01" class="form-control" placeholder="Ex: 10000" oninput="calcPreviewCob()">
+                    <input id="fcValorUsd" type="number" step="0.01" class="form-control" placeholder="Ex: 15000" oninput="onCobValorChange()">
                 </div>
                 <div class="form-group">
                     <label>Valor GBP Pago *</label>
-                    <input id="fcValorGbp" type="number" step="0.01" class="form-control" placeholder="Ex: 7932" oninput="calcPreviewCob()">
+                    <input id="fcValorGbp" type="number" step="0.01" class="form-control" placeholder="Ex: 11278.20" oninput="onCobValorChange()">
                 </div>
             </div>
-
-            <div class="form-section-title" style="margin-top:4px"><i class="fas fa-exchange-alt"></i> Lançamento nas Contas</div>
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Conta GBP Debitada (paga) *</label>
+                    <label>Conta GBP Debitada (sai GBP) *</label>
                     <select id="fcContaDeb" class="form-control"><option value="">Carregando…</option></select>
                 </div>
                 <div class="form-group">
-                    <label>Conta USD Creditada (recebe) *</label>
+                    <label>Conta USD Creditada (entra USD) *</label>
                     <select id="fcContaCred" class="form-control"><option value="">Carregando…</option></select>
                 </div>
             </div>
-
-            <div class="form-group" style="margin-bottom:16px">
+            <div class="form-group" style="margin-bottom:20px">
                 <label>Observações</label>
                 <input id="fcObs" type="text" class="form-control" placeholder="Ex: Barclays FX, HSBC…">
             </div>
 
-            <div class="preview-box" id="fcPreviewBox" style="display:none">
-                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Operação:</span><span id="fcPvOp" style="font-weight:600"></span></div>
+            <!-- Alocações -->
+            <div class="form-section-title"><i class="fas fa-project-diagram"></i> Alocação por Fechamento
+                <button class="btn-sm btn-sm-warn" style="margin-left:12px;font-size:11px" onclick="autoAlocar()" title="Distribui automaticamente do mais antigo ao mais novo">
+                    <i class="fas fa-magic"></i> Auto-alocar
+                </button>
+            </div>
+
+            <div id="cobAlocacoes" style="margin-bottom:16px;">
+                <div style="color:var(--cor-texto-secundario);font-size:13px;padding:12px 0"><i class="fas fa-spinner fa-spin"></i> Carregando fechamentos abertos…</div>
+            </div>
+
+            <!-- Sobra para o pool -->
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(155,155,155,.06);border:1px solid var(--cor-borda);border-radius:8px;font-size:13px;margin-bottom:16px;">
+                <i class="fas fa-layer-group" style="color:var(--cor-texto-secundario)"></i>
+                <span style="flex:1;color:var(--cor-texto-secundario)">Sobra → Pool (não alocada)</span>
+                <span id="cobSobra" class="mono" style="font-weight:700;font-size:15px;color:var(--cor-alerta)">—</span>
+                <span style="color:var(--cor-texto-secundario)">USD</span>
+            </div>
+
+            <!-- Preview taxa -->
+            <div class="preview-box" id="fcPreviewBox" style="display:none;margin-bottom:16px">
                 <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Taxa GBP/USD efetiva:</span><span id="fcPvTaxa" class="mono azul" style="font-weight:700"></span></div>
-                <div class="preview-row" id="fcPvBrlRow" style="display:none"><span style="color:var(--cor-texto-secundario)">Taxa GBP/BRL resultante (com fechamento):</span><span id="fcPvBrl" class="mono verde" style="font-weight:700"></span></div>
+                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">GBP por USD:</span><span id="fcPvGpu" class="mono" style="font-weight:600"></span></div>
             </div>
 
             <button class="btn-primary" id="btnCobrir" onclick="registrarCobertura()">
                 <i class="fas fa-shield-alt"></i> Registrar Cobertura
             </button>
             <div id="cobMsg" style="margin-top:14px;font-size:14px;"></div>
+        </div>
+
+        <!-- Realocar do Pool -->
+        <div class="form-card" style="max-width:860px;margin-top:20px">
+            <div class="form-section-title"><i class="fas fa-exchange-alt"></i> Realocar do Pool → Fechamento</div>
+            <div style="background:rgba(210,158,0,.06);border:1px solid rgba(210,158,0,.2);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;">
+                <i class="fas fa-info-circle" style="color:var(--cor-admin);margin-right:6px"></i>
+                USD já comprado no pool mas ainda não alocado a nenhum fechamento.
+                <strong>Não gera nova compra no banco</strong> — apenas compromete o saldo disponível.
+            </div>
+            <div style="display:flex;align-items:center;gap:24px;margin-bottom:20px;flex-wrap:wrap;">
+                <div><span style="font-size:12px;color:var(--cor-texto-secundario)">Pool disponível</span><br>
+                    <span id="rpPoolDisp" class="mono verde" style="font-size:18px;font-weight:700">—</span>
+                </div>
+                <div><span style="font-size:12px;color:var(--cor-texto-secundario)">WAC (custo)</span><br>
+                    <span id="rpPoolWac" class="mono azul" style="font-size:15px;font-weight:600">—</span> GBP/USD
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Fechamento destino *</label>
+                    <select id="rpFechamento" class="form-control" onchange="recalcRealocGBP()">
+                        <option value="">Selecione…</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Valor USD a realocar *</label>
+                    <input id="rpValorUsd" type="number" step="0.01" class="form-control"
+                        placeholder="Ex: 2000" oninput="recalcRealocGBP()">
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom:16px">
+                <label>Observações</label>
+                <input id="rpObs" type="text" class="form-control" placeholder="Opcional">
+            </div>
+            <div class="preview-box" id="rpPreviewBox" style="display:none;margin-bottom:16px">
+                <div class="preview-row">
+                    <span style="color:var(--cor-texto-secundario)">Custo GBP (ao WAC):</span>
+                    <span id="rpPvGbp" class="mono azul" style="font-weight:700"></span>
+                </div>
+                <div class="preview-row">
+                    <span style="color:var(--cor-texto-secundario)">Pool disponível após:</span>
+                    <span id="rpPvDisp" class="mono" style="font-weight:600"></span>
+                </div>
+            </div>
+            <button class="btn-primary" id="btnRealoc" onclick="realizarRealocPool()">
+                <i class="fas fa-exchange-alt"></i> Realocar do Pool
+            </button>
+            <div id="rpMsg" style="margin-top:14px;font-size:14px;"></div>
         </div>
     </div>
 
@@ -367,7 +429,7 @@
         document.getElementById(`tab-${name}`).classList.add('active');
         if (name === 'pool')        carregarPool();
         if (name === 'fechamentos') carregarFechamentos();
-        if (name === 'cobrir')      { carregarContasEmpresa(); carregarFechamentosSelector(); }
+        if (name === 'cobrir')      { carregarContasEmpresa(); carregarFechamentosSelector(); carregarPoolRealoc(); }
         if (name === 'pl')          carregarPL();
         if (name === 'trader')      carregarTrader();
     }
@@ -392,7 +454,7 @@
                 ? `Ciclo atual desde: ${new Date(data.ultimo_reset).toLocaleString('pt-BR')}`
                 : 'Ciclo desde o início (sem resets)';
             const totalCustoGBP = data.pool.reduce((a,p) => a + p.total_custo_gbp, 0);
-            const totalDisp     = data.pool.filter(p=>p.moeda==='USD').reduce((a,p)=>a+p.disponivel,0);
+            const totalDisp     = data.pool.filter(p=>p.moeda==='USD').reduce((a,p)=>a+(p.disponivel_pool !== undefined ? p.disponivel_pool : p.disponivel),0);
             const totalComp     = data.pool.reduce((a,p) => a + p.comprometido, 0);
             document.getElementById('pool-resumo').innerHTML = `
                 <div class="resumo-card"><div class="label">Investido no Pool (GBP)</div><div class="valor azul">${fmtGBP(totalCustoGBP)}</div><div class="sub">custo total acumulado</div></div>
@@ -405,7 +467,9 @@
                 return;
             }
             document.getElementById('pool-cards').innerHTML = data.pool.map(p => {
-                const pct = p.saldo_empresa > 0 ? Math.min(100, (p.disponivel / p.saldo_empresa) * 100) : 0;
+                const isUsd   = p.moeda === 'USD';
+                const dispVal = isUsd && p.disponivel_pool !== undefined ? p.disponivel_pool : p.disponivel;
+                const pct = p.saldo_empresa > 0 ? Math.min(100, (dispVal / p.saldo_empresa) * 100) : 0;
                 const barColor = pct > 60 ? 'var(--cor-sucesso)' : pct > 30 ? 'var(--cor-alerta)' : 'var(--cor-perigo)';
                 const diff = p.market_gbp - p.wac_gbp;
                 const diffPct = p.wac_gbp > 0 ? (diff / p.wac_gbp * 100) : 0;
@@ -419,6 +483,9 @@
                        <div class="pool-row"><span class="pool-lbl">WAC (USD/unit)</span><span class="pool-val">${fmtNum(p.wac_usd,6)}</span></div>
                        <div class="pool-row"><span class="pool-lbl">WAC (BRL/unit)</span><span class="pool-val">${fmtNum(p.wac_brl,4)}</span></div>
                        <div class="pool-row"><span class="pool-lbl">Mercado atual (GBP)</span><span class="pool-val ${diff>=0?'verde':'vermelho'}">${fmtNum(p.market_gbp,6)} <small>(${diff>=0?'+':''}${fmtNum(diffPct,2)}%)</small></span></div>`;
+                const fechHtml = isUsd && (p.comprometido_fechamentos || 0) > 0
+                    ? `<div class="pool-row" style="padding-left:12px"><span class="pool-lbl" style="font-size:11px">↳ em fechamentos ativos</span><span class="pool-val amarelo" style="font-size:12px">${fmtNum(p.comprometido_fechamentos,2)} USD</span></div>`
+                    : '';
                 return `
                 <div class="pool-card" style="${isShort?'border-color:rgba(231,76,60,.35);':''}">
                     <div class="pool-card-header"><span class="pool-moeda">${p.moeda}</span>${badgeHtml}</div>
@@ -427,8 +494,9 @@
                         <hr class="pool-sep">
                         <div class="pool-row"><span class="pool-lbl">Posição pool</span><span class="pool-val ${isShort?'vermelho':''}">${fmtNum(p.total_pool,2)} ${p.moeda}</span></div>
                         <div class="pool-row"><span class="pool-lbl">Saldo empresa</span><span class="pool-val">${fmtNum(p.saldo_empresa,2)} ${p.moeda}</span></div>
-                        <div class="pool-row"><span class="pool-lbl">Comprometido</span><span class="pool-val amarelo">${fmtNum(p.comprometido,2)} ${p.moeda}</span></div>
-                        <div class="pool-row"><span class="pool-lbl">Disponível</span><span class="pool-val ${p.disponivel>=0?'verde':'vermelho'}">${fmtNum(p.disponivel,2)} ${p.moeda}</span></div>
+                        <div class="pool-row"><span class="pool-lbl">Comprometido (remessas)</span><span class="pool-val amarelo">${fmtNum(p.comprometido,2)} ${p.moeda}</span></div>
+                        ${fechHtml}
+                        <div class="pool-row"><span class="pool-lbl">${isUsd ? 'Disponível p/ pool' : 'Disponível'}</span><span class="pool-val ${dispVal>=0?'verde':'vermelho'}">${fmtNum(dispVal,2)} ${p.moeda}</span></div>
                         <div class="status-bar"><div class="status-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
                     </div>
                 </div>`;
@@ -660,19 +728,21 @@
         }, 300);
     }
 
-    // ── Cobertura (formerly Comprar) ──────────────────────────────────────────
+    // ── Cobertura ─────────────────────────────────────────────────────────────
+    let cobFechamentosAbertos = [];
+
     async function carregarContasEmpresa() {
-        if (contasEmpresa.length) return;
         try {
             const res  = await fetch('/api/admin/contas-bancarias');
             const data = await res.json();
             contasEmpresa = data.contas || [];
             const deb  = document.getElementById('fcContaDeb');
             const cred = document.getElementById('fcContaCred');
+            if (!deb || !cred) return;
             deb.innerHTML  = '<option value="">Conta GBP debitada…</option>';
             cred.innerHTML = '<option value="">Conta USD creditada…</option>';
             contasEmpresa.forEach(c => {
-                const opt = `<option value="${c.numero}">${c.numero} — ${c.banco||''} (${c.moeda}) saldo: ${fmtNum(c.saldo)}</option>`;
+                const opt = `<option value="${c.numero}">${c.numero} — ${c.banco||''} (${c.moeda}) saldo: ${fmtNum(c.saldo,2)}</option>`;
                 deb.innerHTML  += opt;
                 cred.innerHTML += opt;
             });
@@ -681,81 +751,146 @@
 
     async function carregarFechamentosSelector() {
         try {
-            const res  = await fetch('/api/admin/fx/fechamentos');
-            const data = await res.json();
-            const sel  = document.getElementById('fcFechamento');
-            const abertos = (data.fechamentos || []).filter(f => f.status !== 'fechado');
-            sel.innerHTML = '<option value="">Sem vínculo (compra avulsa de pool)</option>';
-            abertos.forEach(f => {
-                const cobPct = f.valor_usd_estimado > 0 ? Math.round((f.total_coberto_usd / f.valor_usd_estimado) * 100) : 0;
-                sel.innerHTML += `<option value="${f.id}">${f.parceiro_username} — ${fmtNum(f.taxa_usd_brl,4)} USD/BRL — ${fmtNum(f.valor_usd_estimado,0)} USD (${cobPct}% coberto) [${f.status}]</option>`;
+            const [rfech, rpool] = await Promise.all([
+                fetch('/api/admin/fx/fechamentos').then(r=>r.json()),
+                fetch('/api/admin/fx/pool/disponivel-usd').then(r=>r.json()),
+            ]);
+            cobFechamentosAbertos = (rfech.fechamentos || []).filter(f => {
+                if (f.status === 'fechado') return false;
+                const restante = parseFloat(f.valor_usd_estimado||0) - parseFloat(f.total_coberto_usd||0);
+                return restante > 0.01;
             });
+            window._fechData = rfech.fechamentos || [];
+
+            // Banner pool
+            if (rpool.success) {
+                const banner = document.getElementById('cobPoolBanner');
+                banner.style.display = 'flex';
+                document.getElementById('cobPoolDisp').textContent = fmtNum(rpool.disponivel_usd, 2) + ' USD';
+                document.getElementById('cobPoolWac').textContent  = fmtNum(rpool.wac_gbp_usd, 6);
+            }
+            renderAlocacoes();
         } catch(e) { console.error(e); }
     }
 
-    function onFechamentoCobChange() {
-        const sel  = document.getElementById('fcFechamento');
-        const fid  = sel.value;
-        const info = document.getElementById('fcFechInfo');
-        if (!fid) { info.style.display = 'none'; return; }
-        const fdata = (window._fechData || []).find(f => f.id === fid);
-        if (!fdata) {
-            fetch('/api/admin/fx/fechamentos').then(r=>r.json()).then(d => {
-                window._fechData = d.fechamentos || [];
-                const fd = window._fechData.find(f => f.id === fid);
-                if (fd) showFechInfo(fd);
-            });
-        } else { showFechInfo(fdata); }
-        calcPreviewCob();
+    function renderAlocacoes() {
+        const wrap = document.getElementById('cobAlocacoes');
+        if (!cobFechamentosAbertos.length) {
+            wrap.innerHTML = '<div style="color:var(--cor-texto-secundario);font-size:13px;padding:8px 0"><i class="fas fa-info-circle"></i> Nenhum fechamento aberto — compra irá integralmente para o pool.</div>';
+            recalcSobra();
+            return;
+        }
+        wrap.innerHTML = cobFechamentosAbertos.map(f => {
+            const restante = Math.max(0, parseFloat(f.valor_usd_estimado||0) - parseFloat(f.total_coberto_usd||0));
+            const pct = f.valor_usd_estimado > 0 ? Math.min(100, Math.round((f.total_coberto_usd / f.valor_usd_estimado)*100)) : 0;
+            const pctColor = pct >= 95 ? 'var(--cor-sucesso)' : pct > 50 ? 'var(--cor-alerta)' : 'var(--cor-perigo)';
+            return `
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--cor-fundo);border:1px solid var(--cor-borda);border-radius:8px;margin-bottom:8px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:200px">
+                    <div style="font-weight:600;font-size:13px">${f.parceiro_username}</div>
+                    <div style="font-size:11px;color:var(--cor-texto-secundario);margin-top:2px">
+                        ${fmtNum(f.valor_usd_estimado,2)} USD est. | coberto: <span style="color:${pctColor}">${pct}%</span> | falta: <strong>${fmtNum(restante,2)} USD</strong>
+                    </div>
+                    <div style="font-size:11px;color:var(--cor-texto-secundario)">Taxa: ${fmtNum(f.taxa_usd_brl,4)} USD/BRL</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px">
+                    <label style="font-size:12px;color:var(--cor-texto-secundario)">Alocar USD:</label>
+                    <input type="number" step="0.01" min="0"
+                        id="aloc_${f.id}" class="form-control" style="width:130px;padding:7px 10px"
+                        placeholder="0.00" value="0"
+                        oninput="recalcSobra()" data-restante="${restante}">
+                </div>
+                <button class="btn-sm btn-sm-ghost" onclick="alocarTudo('${f.id}')" title="Alocar todo o restante deste fechamento">
+                    <i class="fas fa-fill"></i> Tudo
+                </button>
+            </div>`;
+        }).join('');
+        recalcSobra();
     }
 
-    function showFechInfo(f) {
-        const info = document.getElementById('fcFechInfo');
-        const restante = Math.max(0, parseFloat(f.valor_usd_estimado||0) - parseFloat(f.total_coberto_usd||0));
-        info.style.display = 'block';
-        info.innerHTML = `<strong>${f.parceiro_username}</strong> — Taxa: <strong>${fmtNum(f.taxa_usd_brl,4)} USD/BRL</strong> |
-            Estimado: <strong>${fmtNum(f.valor_usd_estimado,0)} USD</strong> |
-            Coberto: <strong class="${restante>0?'amarelo':'verde'}">${fmtNum(f.total_coberto_usd,0)} USD</strong> |
-            Faltam: <strong class="${restante>0?'vermelho':'verde'}">${fmtNum(restante,0)} USD</strong>`;
-    }
-
-    function calcPreviewCob() {
+    function alocarTudo(fid) {
+        const inp = document.getElementById(`aloc_${fid}`);
+        if (!inp) return;
+        const restanteFech = parseFloat(inp.dataset.restante || 0);
         const vUsd = parseFloat(document.getElementById('fcValorUsd').value) || 0;
+        const totalOutros = cobFechamentosAbertos.reduce((acc, f) => {
+            if (f.id === fid) return acc;
+            return acc + (parseFloat(document.getElementById(`aloc_${f.id}`)?.value || 0));
+        }, 0);
+        const disponivel = Math.max(0, vUsd - totalOutros);
+        inp.value = Math.min(restanteFech, disponivel).toFixed(2);
+        recalcSobra();
+    }
+
+    function recalcSobra() {
+        const vUsd   = parseFloat(document.getElementById('fcValorUsd').value) || 0;
+        const totalAloc = cobFechamentosAbertos.reduce((acc, f) => {
+            const v = parseFloat(document.getElementById(`aloc_${f.id}`)?.value || 0);
+            return acc + v;
+        }, 0);
+        const sobra = Math.max(0, vUsd - totalAloc);
+        const sobraEl = document.getElementById('cobSobra');
+        if (sobraEl) {
+            sobraEl.textContent = fmtNum(sobra, 2);
+            sobraEl.style.color = sobra > 0 ? 'var(--cor-alerta)' : 'var(--cor-sucesso)';
+        }
+        // Preview taxa
         const vGbp = parseFloat(document.getElementById('fcValorGbp').value) || 0;
         const box  = document.getElementById('fcPreviewBox');
-        if (!vUsd || !vGbp) { box.style.display = 'none'; return; }
-        box.style.display = 'block';
-        const taxaGbpUsd = vGbp / vUsd;
-        document.getElementById('fcPvOp').textContent   = `Comprar ${fmtNum(vUsd,2)} USD pagando £${fmtNum(vGbp,2)}`;
-        document.getElementById('fcPvTaxa').textContent = `${taxaGbpUsd.toFixed(6)} GBP/USD`;
-        // If linked to fechamento, show implied GBP/BRL
-        const fid = document.getElementById('fcFechamento').value;
-        const brlRow = document.getElementById('fcPvBrlRow');
-        if (fid) {
-            const fdata = (window._fechData || []).find(f => f.id === fid);
-            if (fdata) {
-                const taxaUsdBrl = parseFloat(fdata.taxa_usd_brl || 0);
-                if (taxaUsdBrl > 0) {
-                    const taxaGbpBrl = (vUsd / vGbp) * taxaUsdBrl;
-                    document.getElementById('fcPvBrl').textContent = `${fmtNum(taxaGbpBrl,4)} BRL/GBP`;
-                    brlRow.style.display = 'flex';
-                } else { brlRow.style.display = 'none'; }
-            } else { brlRow.style.display = 'none'; }
-        } else { brlRow.style.display = 'none'; }
+        if (vUsd > 0 && vGbp > 0) {
+            box.style.display = 'block';
+            const taxa = vUsd / vGbp;
+            document.getElementById('fcPvTaxa').textContent = fmtNum(taxa, 6) + ' USD/GBP';
+            document.getElementById('fcPvGpu').textContent  = fmtNum(vGbp / vUsd, 6) + ' GBP/USD';
+        } else {
+            box.style.display = 'none';
+        }
+    }
+
+    function onCobValorChange() { recalcSobra(); }
+
+    function autoAlocar() {
+        const vUsd = parseFloat(document.getElementById('fcValorUsd').value) || 0;
+        if (!vUsd) { alert('Informe o valor USD comprado primeiro.'); return; }
+        let restante = vUsd;
+        // Zerar todos primeiro
+        cobFechamentosAbertos.forEach(f => {
+            const inp = document.getElementById(`aloc_${f.id}`);
+            if (inp) inp.value = '0';
+        });
+        // Preencher do mais antigo ao mais novo
+        for (const f of cobFechamentosAbertos) {
+            if (restante <= 0) break;
+            const faltaFech = Math.max(0, parseFloat(f.valor_usd_estimado||0) - parseFloat(f.total_coberto_usd||0));
+            const alocar = Math.min(restante, faltaFech);
+            const inp = document.getElementById(`aloc_${f.id}`);
+            if (inp && alocar > 0) inp.value = alocar.toFixed(2);
+            restante -= alocar;
+        }
+        recalcSobra();
     }
 
     async function registrarCobertura() {
-        const vUsd    = parseFloat(document.getElementById('fcValorUsd').value) || 0;
-        const vGbp    = parseFloat(document.getElementById('fcValorGbp').value) || 0;
-        const contaDeb  = document.getElementById('fcContaDeb').value;
-        const contaCred = document.getElementById('fcContaCred').value;
-        const obs       = document.getElementById('fcObs').value.trim();
-        const fechId    = document.getElementById('fcFechamento').value || null;
-        const msg       = document.getElementById('cobMsg');
+        const vUsd     = parseFloat(document.getElementById('fcValorUsd').value) || 0;
+        const vGbp     = parseFloat(document.getElementById('fcValorGbp').value) || 0;
+        const contaDeb = document.getElementById('fcContaDeb').value;
+        const contaCred= document.getElementById('fcContaCred').value;
+        const obs      = document.getElementById('fcObs').value.trim();
+        const msg      = document.getElementById('cobMsg');
         if (!vUsd || !vGbp || !contaDeb || !contaCred) {
-            msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Preencha todos os campos obrigatórios.</span>';
+            msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Preencha USD, GBP e as contas.</span>';
             return;
         }
+        // Montar alocações
+        const alocacoes = [];
+        cobFechamentosAbertos.forEach(f => {
+            const v = parseFloat(document.getElementById(`aloc_${f.id}`)?.value || 0);
+            if (v > 0) alocacoes.push({ fechamento_id: f.id, valor_usd: v });
+        });
+        const totalAloc = alocacoes.reduce((a,x) => a + x.valor_usd, 0);
+        const sobra = Math.round((vUsd - totalAloc) * 100) / 100;
+        if (sobra > 0.01) alocacoes.push({ fechamento_id: null, valor_usd: sobra });
+
         const btn = document.getElementById('btnCobrir');
         btn.disabled = true;
         msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando…';
@@ -763,11 +898,9 @@
             const res = await fetch('/api/admin/fx/coberturas', {
                 method:'POST', headers:{'Content-Type':'application/json'},
                 body: JSON.stringify({
-                    fechamento_id: fechId,
                     valor_usd: vUsd, valor_gbp: vGbp,
-                    taxa_gbp_usd: vGbp / vUsd,
                     conta_debitada: contaDeb, conta_creditada: contaCred,
-                    observacoes: obs, tipo: 'compra_banco',
+                    observacoes: obs, alocacoes,
                 })
             });
             const d = await res.json();
@@ -775,6 +908,91 @@
                 msg.innerHTML = `<span style="color:var(--cor-sucesso)"><i class="fas fa-check-circle"></i> ${d.message}</span>`;
                 ['fcValorUsd','fcValorGbp','fcObs'].forEach(id => document.getElementById(id).value = '');
                 document.getElementById('fcPreviewBox').style.display = 'none';
+                cobFechamentosAbertos.forEach(f => {
+                    const inp = document.getElementById(`aloc_${f.id}`);
+                    if (inp) inp.value = '0';
+                });
+                recalcSobra();
+                carregarPool();
+                carregarFechamentosSelector();
+            } else {
+                msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${d.message}</span>`;
+            }
+        } catch(e) {
+            msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${e.message}</span>`;
+        }
+        btn.disabled = false;
+    }
+
+    // ── Realocar do Pool ──────────────────────────────────────────────────────
+    let _rpWac = 0;
+    let _rpDisponivel = 0;
+
+    async function carregarPoolRealoc() {
+        try {
+            const [rpool, rfech] = await Promise.all([
+                fetch('/api/admin/fx/pool/disponivel-usd').then(r => r.json()),
+                fetch('/api/admin/fx/fechamentos').then(r => r.json()),
+            ]);
+            if (rpool.success) {
+                _rpWac        = rpool.wac_gbp_usd || 0;
+                _rpDisponivel = rpool.disponivel_usd || 0;
+                document.getElementById('rpPoolDisp').textContent = fmtNum(_rpDisponivel, 2) + ' USD';
+                document.getElementById('rpPoolWac').textContent  = fmtNum(_rpWac, 6);
+            }
+            const fechAbertos = (rfech.fechamentos || []).filter(f => f.status !== 'fechado');
+            const sel = document.getElementById('rpFechamento');
+            sel.innerHTML = '<option value="">Selecione…</option>';
+            fechAbertos.forEach(f => {
+                const falta = Math.max(0, parseFloat(f.valor_usd_estimado||0) - parseFloat(f.total_coberto_usd||0));
+                sel.innerHTML += `<option value="${f.id}">${f.id.slice(0,8).toUpperCase()} — ${f.parceiro_username} @ ${fmtNum(f.taxa_usd_brl,4)} | falta ${fmtNum(falta,2)} USD</option>`;
+            });
+            recalcRealocGBP();
+        } catch(e) { console.error(e); }
+    }
+
+    function recalcRealocGBP() {
+        const vUsd = parseFloat(document.getElementById('rpValorUsd').value) || 0;
+        const box  = document.getElementById('rpPreviewBox');
+        if (vUsd > 0 && _rpWac > 0) {
+            box.style.display = 'block';
+            document.getElementById('rpPvGbp').textContent  = '£' + fmtNum(vUsd * _rpWac, 4);
+            const apos = Math.max(0, _rpDisponivel - vUsd);
+            const dispEl = document.getElementById('rpPvDisp');
+            dispEl.textContent = fmtNum(apos, 2) + ' USD';
+            dispEl.style.color = apos >= 0 ? 'var(--cor-sucesso)' : 'var(--cor-perigo)';
+        } else {
+            box.style.display = 'none';
+        }
+    }
+
+    async function realizarRealocPool() {
+        const fechamento_id = document.getElementById('rpFechamento').value;
+        const valor_usd     = parseFloat(document.getElementById('rpValorUsd').value) || 0;
+        const obs           = document.getElementById('rpObs').value.trim();
+        const msg           = document.getElementById('rpMsg');
+        if (!fechamento_id) { msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Selecione o fechamento.</span>'; return; }
+        if (valor_usd <= 0) { msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Informe o valor USD.</span>'; return; }
+        if (valor_usd > _rpDisponivel + 0.01) {
+            msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Excede o pool disponível (${fmtNum(_rpDisponivel,2)} USD).</span>`;
+            return;
+        }
+        const btn = document.getElementById('btnRealoc');
+        btn.disabled = true;
+        msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Realocando…';
+        try {
+            const res = await fetch('/api/admin/fx/coberturas/from-pool', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ fechamento_id, valor_usd, observacoes: obs }),
+            });
+            const d = await res.json();
+            if (d.success) {
+                msg.innerHTML = `<span style="color:var(--cor-sucesso)"><i class="fas fa-check-circle"></i> ${d.message}</span>`;
+                document.getElementById('rpValorUsd').value = '';
+                document.getElementById('rpObs').value = '';
+                document.getElementById('rpPreviewBox').style.display = 'none';
+                carregarPoolRealoc();
+                carregarFechamentosSelector();
                 carregarPool();
             } else {
                 msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${d.message}</span>`;
@@ -783,6 +1001,20 @@
             msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${e.message}</span>`;
         }
         btn.disabled = false;
+    }
+
+    // Compat: irParaCobertura ainda funciona sem o selector antigo
+    function irParaCobertura(fechamentoId) {
+        switchTab('cobrir');
+        setTimeout(() => {
+            const inp = document.getElementById(`aloc_${fechamentoId}`);
+            if (inp) {
+                inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                inp.focus();
+                inp.style.borderColor = 'var(--cor-admin)';
+                setTimeout(() => inp.style.borderColor = '', 2000);
+            }
+        }, 400);
     }
 
     // ── P&L ──────────────────────────────────────────────────────────────────

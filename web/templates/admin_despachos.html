@@ -354,18 +354,9 @@
                 <option value="">Selecione o parceiro…</option>
             </select>
         </div>
-        <div style="background:rgba(210,158,0,.05);border:1px solid rgba(210,158,0,.2);border-radius:10px;padding:14px;margin-bottom:13px;">
-            <div style="font-size:11px;font-weight:700;color:var(--cor-admin);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;"><i class="fas fa-coins"></i> Registro FX (opcional — calcula P&L no DRE)</div>
-            <div class="fg" style="margin-bottom:10px;">
-                <label>Fechamento Vinculado <small style="text-transform:none;font-weight:400;">(auto-preenche taxa abaixo)</small></label>
-                <select id="dFechamento" class="fc-full" onchange="onFechamentoDespachoChange()">
-                    <option value="">Sem vínculo</option>
-                </select>
-            </div>
-            <div class="fg" style="margin-bottom:0;">
-                <label>Taxa GBP/BRL Real <small style="text-transform:none;font-weight:400;">(BRL por GBP — registra P&L na criação)</small></label>
-                <input id="dTaxaGbpBrl" type="number" step="0.0001" class="fc-full" placeholder="Ex: 6.5800">
-            </div>
+        <div style="background:rgba(210,158,0,.05);border:1px solid rgba(210,158,0,.2);border-radius:10px;padding:12px 14px;margin-bottom:13px;font-size:12px;color:var(--cor-texto-secundario);display:flex;align-items:center;gap:10px;">
+            <i class="fas fa-magic" style="color:var(--cor-admin)"></i>
+            <span>O vínculo FX será feito <strong style="color:var(--cor-admin)">automaticamente</strong> com base no parceiro selecionado — os fechamentos ativos serão alocados por ordem de criação (FIFO) e o P&L será calculado quando a cobertura for registrada.</span>
         </div>
         <div class="fg">
             <label>Observações</label>
@@ -662,6 +653,33 @@ async function carregarDespachos() {
                         ${dep.observacoes?`<span>Obs: <em>${dep.observacoes}</em></span>`:''}
                         ${dep.valor_gbp?`<span>GBP total ordens: <strong style="color:var(--cor-admin);">£${fmtN(dep.valor_gbp,2)}</strong></span>`:''}
                     </div>
+                    ${(() => {
+                        const alocs = dep.alocacoes_fx || [];
+                        if (!alocs.length && !(dep.brl_pendente > 0.01)) return '';
+                        const linhas = alocs.map(a => {
+                            const fech = a.fx_fechamentos || {};
+                            const coberto = fech.taxa_gbp_brl_real > 0;
+                            const statusIcon = coberto
+                                ? `<span style="color:var(--cor-sucesso);font-size:11px"><i class="fas fa-check-circle"></i> coberto</span>`
+                                : `<span style="color:var(--cor-alerta);font-size:11px"><i class="fas fa-clock"></i> aguard. cobertura</span>`;
+                            return `<div style="display:flex;align-items:center;gap:10px;font-size:12px;padding:4px 0;border-bottom:1px solid var(--cor-borda);">
+                                <i class="fas fa-link" style="color:var(--cor-admin);font-size:10px"></i>
+                                <span style="font-family:monospace;color:var(--cor-texto-secundario)">${a.fechamento_id.slice(0,8).toUpperCase()}</span>
+                                <span>taxa <strong>${fmtN(fech.taxa_usd_brl,4)}</strong> USD/BRL</span>
+                                <span class="mono" style="color:var(--cor-alerta)">$${fmtN(a.valor_usd,2)}</span>
+                                <span style="color:var(--cor-texto-secundario)">|</span>
+                                <span class="mono">R$${fmtN(a.valor_brl,2)}</span>
+                                ${statusIcon}
+                            </div>`;
+                        }).join('');
+                        const pendente = dep.brl_pendente > 0.01
+                            ? `<div style="font-size:12px;color:var(--cor-alerta);padding-top:6px;display:flex;align-items:center;gap:6px;"><i class="fas fa-hourglass-half"></i> <strong>R$${fmtN(dep.brl_pendente,2)} aguardando próximo fechamento</strong></div>`
+                            : '';
+                        return `<div style="margin-bottom:10px;padding:8px 12px;background:rgba(210,158,0,.04);border:1px solid rgba(210,158,0,.15);border-radius:8px;">
+                            <div style="font-size:11px;font-weight:700;color:var(--cor-admin);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;"><i class="fas fa-project-diagram"></i> Alocação FX</div>
+                            ${linhas}${pendente}
+                        </div>`;
+                    })()}
                     ${dep.taxa_gbp_brl ? `
                     <div style="margin-bottom:12px;" id="taxa-pl-row-${dep.id}">
                         <div style="display:flex;gap:12px;flex-wrap:wrap;padding:10px 14px;background:rgba(26,122,82,.05);border:1px solid rgba(26,122,82,.2);border-radius:8px;font-size:13px;align-items:center;">
@@ -729,16 +747,7 @@ async function abrirModalDespacho() {
     } catch(e) {}
     document.getElementById('despachoMsg').innerHTML = '';
     document.getElementById('dObs').value = '';
-    document.getElementById('dTaxaGbpBrl').value = '';
     document.getElementById('modalDespacho').classList.add('open');
-}
-
-function onFechamentoDespachoChange() {
-    const sel = document.getElementById('dFechamento');
-    const opt = sel.options[sel.selectedIndex];
-    const taxa = opt && opt.dataset.taxa ? opt.dataset.taxa : '';
-    if (taxa) document.getElementById('dTaxaGbpBrl').value = parseFloat(taxa).toFixed(4);
-    else document.getElementById('dTaxaGbpBrl').value = '';
 }
 
 function abrirTaxaPL(despachoId, taxaAtual) {
@@ -795,16 +804,12 @@ async function confirmarDespacho() {
     btn.disabled = true;
     msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando despacho…';
     try {
-        const taxaGbpBrl = parseFloat(document.getElementById('dTaxaGbpBrl').value) || null;
-        const fechamentoId = document.getElementById('dFechamento').value || null;
         const r = await fetch('/api/admin/despachos', {
             method: 'POST', headers: {'Content-Type':'application/json'},
             body: JSON.stringify({
                 ordem_ids: [...selecionadas],
                 parceiro_pagador: parceiro,
                 observacoes: document.getElementById('dObs').value.trim(),
-                fechamento_id: fechamentoId,
-                taxa_gbp_brl: taxaGbpBrl,
             })
         });
         const d = await r.json();

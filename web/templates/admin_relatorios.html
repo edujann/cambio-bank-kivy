@@ -872,9 +872,9 @@
                 if (data.success) {
                     dadosMensal = data.dados;
                     if (moeda === 'TODAS' && dadosMensal.total_por_moeda && Object.keys(dadosMensal.total_por_moeda).length > 1) {
-                        abrirModalTaxas(taxas => exibirRelatorioMensal(dadosMensal, taxas));
+                        abrirModalTaxas(taxas => exibirRelatorioMensal(dadosMensal, taxas, moeda));
                     } else {
-                        exibirRelatorioMensal(dadosMensal, null);
+                        exibirRelatorioMensal(dadosMensal, null, moeda);
                     }
                 } else {
                     resultadosDiv.innerHTML = `<div class="loading"><p>❌ ${data.message}</p></div>`;
@@ -889,10 +889,10 @@
             return null;
         }
 
-        function exibirRelatorioMensal(dados, taxas) {
+        function exibirRelatorioMensal(dados, taxas, moedaSel) {
             graficoMensal = destruirGrafico(graficoMensal);
             const resultadosDiv = document.getElementById('mensalResultados');
-            const moedaPadrao = dados.moeda_padrao || 'USD';
+            const moedaPadrao = taxas ? 'USD' : (moedaSel && moedaSel !== 'TODAS' ? moedaSel : (dados.moeda_padrao || 'USD'));
             
             // 🔥 CALCULAR TOTAL GERAL CONVERTIDO (se taxas existirem)
             let totalGeral = dados.total_geral || 0;
@@ -920,7 +920,7 @@
                 <div class="cards-resumo">
                     <div class="card-resumo">
                         <div class="titulo"><i class="fas fa-chart-line"></i> TOTAL</div>
-                        <div class="valor">${formatarValor(totalGeral, 'USD')}</div>
+                        <div class="valor">${formatarValor(totalGeral, moedaPadrao)}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo"><i class="fas fa-exchange-alt"></i> TRANSAÇÕES</div>
@@ -928,11 +928,11 @@
                     </div>
                     <div class="card-resumo">
                         <div class="titulo"><i class="fas fa-calculator"></i> MÉDIA</div>
-                        <div class="valor">${formatarValor(media, 'USD')}</div>
+                        <div class="valor">${formatarValor(media, moedaPadrao)}</div>
                     </div>
                     <div class="card-resumo">
-                        <div class="titulo"><i class="fas fa-dollar-sign"></i> TOTAL (USD)</div>
-                        <div class="valor">${formatarValor(totalEmUSD || totalGeral, 'USD')}</div>
+                        <div class="titulo"><i class="fas fa-dollar-sign"></i> TOTAL (${moedaPadrao})</div>
+                        <div class="valor">${formatarValor(totalEmUSD || totalGeral, moedaPadrao)}</div>
                     </div>
                 </div>
             `;
@@ -1000,7 +1000,7 @@
                                 <i class="fas fa-chevron-right"></i>
                                 <span class="categoria-nome"><i class="fas fa-folder"></i> ${escapeHtml(categoria)}</span>
                             </div>
-                            <span class="categoria-total">${formatarValor(totalCat, 'USD')}</span>
+                            <span class="categoria-total">${formatarValor(totalCat, moedaPadrao)}</span>
                         </div>
                         <div class="categoria-contas" style="display:none;">`;
                     for (const [conta, contaDados] of Object.entries(catDados.contas || {})) {
@@ -1013,7 +1013,7 @@
                         }
                         html += `<div class="conta-item">
                             <span class="conta-nome">📄 ${escapeHtml(conta)}</span>
-                            <span class="conta-valor">${formatarValor(valorConta, 'USD')}
+                            <span class="conta-valor">${formatarValor(valorConta, moedaPadrao)}
                                 <span class="conta-quantidade">(${contaDados.quantidade || 0} tx)</span>
                             </span>
                         </div>`;
@@ -1030,14 +1030,14 @@
                     <div class="tabela-container">
                         <table class="tabela-transacoes">
                             <thead><tr>
-                                <th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Valor Original</th><th>Valor (USD)</th>
+                                <th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Valor Original</th><th>Valor (${moedaPadrao})</th>
                             </tr></thead>
                             <tbody>`;
                 for (const t of dados.transacoes) {
-                    let valorUSD = t.valor;
+                    let valorConv = t.valor;
                     let moedaTransacao = t.moeda || moedaPadrao;
                     if (taxas && moedaTransacao !== 'USD') {
-                        valorUSD = converterValorParaUSD(t.valor, moedaTransacao, taxas);
+                        valorConv = converterValorParaUSD(t.valor, moedaTransacao, taxas);
                     }
                     let contaExibida = t.conta_despesa || t.conta_especifica || '-';
                     html += `<tr>
@@ -1046,12 +1046,12 @@
                         <td>${escapeHtml(t.categoria || '-')}</td>
                         <td>${escapeHtml(contaExibida)}</td>
                         <td>${formatarValor(t.valor, moedaTransacao)}</td>
-                        <td><strong>${formatarValor(valorUSD, 'USD')}</strong></td>
+                        <td><strong>${formatarValor(valorConv, moedaPadrao)}</strong></td>
                     </tr>`;
                 }
                 html += `<tr class="total-geral">
                     <td colspan="5"><strong>TOTAL GERAL</strong></td>
-                    <td><strong>${formatarValor(totalEmUSD || totalGeral, 'USD')}</strong></td>
+                    <td><strong>${formatarValor(totalEmUSD || totalGeral, moedaPadrao)}</strong></td>
                 </tr></tbody></table></div></div>`;
             }
             
@@ -1081,7 +1081,7 @@
                             responsive: true,
                             plugins: {
                                 legend: { position: 'right', labels: { color: '#f0e8d0', font: { size: 12 } } },
-                                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatarValor(ctx.raw, 'USD')}` } }
+                                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatarValor(ctx.raw, moedaPadrao)}` } }
                             }
                         }
                     });
@@ -1135,7 +1135,8 @@
         function exibirRelatorioComparativo(dados, mes1, ano1, mes2, ano2, moeda, taxas) {
             graficoComparativo = destruirGrafico(graficoComparativo);
             const resultadosDiv = document.getElementById('comparativoResultados');
-            
+            const moedaDisplay = taxas ? 'USD' : (moeda && moeda !== 'TODAS' ? moeda : 'USD');
+
             // 🔥 CONVERTER TOTAIS PARA USD (se taxas existirem)
             let valorRef = dados.totais?.referencia || 0;
             let valorComp = dados.totais?.comparacao || 0;
@@ -1164,15 +1165,15 @@
                 <div class="cards-resumo">
                     <div class="card-resumo">
                         <div class="titulo">${label1}</div>
-                        <div class="valor">${formatarValor(valorRef, 'USD')}</div>
+                        <div class="valor">${formatarValor(valorRef, moedaDisplay)}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">${label2}</div>
-                        <div class="valor">${formatarValor(valorComp, 'USD')}</div>
+                        <div class="valor">${formatarValor(valorComp, moedaDisplay)}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">VARIAÇÃO</div>
-                        <div class="valor" style="color:${cor}">${sinal} ${formatarValor(Math.abs(variacao), 'USD')}</div>
+                        <div class="valor" style="color:${cor}">${sinal} ${formatarValor(Math.abs(variacao), moedaDisplay)}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">VARIAÇÃO %</div>
@@ -1218,7 +1219,7 @@
             // Tabela comparativa
             if (catEntries.length > 0) {
                 html += `<div class="secao-categorias">
-                    <div class="secao-titulo"><i class="fas fa-chart-line"></i> COMPARATIVO POR CATEGORIA (USD)</div>
+                    <div class="secao-titulo"><i class="fas fa-chart-line"></i> COMPARATIVO POR CATEGORIA (${moedaDisplay})</div>
                     <div class="tabela-container">
                         <table class="tabela-transacoes">
                             <thead><tr>
@@ -1240,9 +1241,9 @@
                     const c = vV > 0 ? 'var(--cor-sucesso)' : vV < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
                     html += `<tr>
                         <td><strong>${escapeHtml(categoria)}</strong></td>
-                        <td>${formatarValor(vR, 'USD')}</td>
-                        <td>${formatarValor(vC, 'USD')}</td>
-                        <td style="color:${c}">${s} ${formatarValor(Math.abs(vV), 'USD')}</td>
+                        <td>${formatarValor(vR, moedaDisplay)}</td>
+                        <td>${formatarValor(vC, moedaDisplay)}</td>
+                        <td style="color:${c}">${s} ${formatarValor(Math.abs(vV), moedaDisplay)}</td>
                         <td style="color:${c}">${s} ${Math.abs(vP).toFixed(1)}%</td>
                     </tr>`;
                 }
@@ -1286,7 +1287,7 @@
                             responsive: true,
                             plugins: {
                                 legend: { labels: { color: '#f0e8d0' } },
-                                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatarValor(ctx.raw, 'USD')}` } }
+                                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatarValor(ctx.raw, moedaDisplay)}` } }
                             },
                             scales: {
                                 y: { grid: { color: '#2d2819' }, ticks: { color: '#f0e8d0' } },
@@ -1336,7 +1337,8 @@
         function exibirRelatorioAnual(dados, ano, moeda, taxas) {
             graficoAnual = destruirGrafico(graficoAnual);
             const resultadosDiv = document.getElementById('anualResultados');
-            
+            const moedaDisplay = taxas ? 'USD' : (moeda && moeda !== 'TODAS' ? moeda : 'USD');
+
             // 🔥 CONVERTER TOTAIS PARA USD
             let totalAno = dados.totais?.total_ano || 0;
             let mediaMens = dados.totais?.media_mensal || 0;
@@ -1355,19 +1357,19 @@
                 <div class="cards-resumo">
                     <div class="card-resumo">
                         <div class="titulo">TOTAL ANO</div>
-                        <div class="valor">${formatarValor(totalAno, 'USD')}</div>
+                        <div class="valor">${formatarValor(totalAno, moedaDisplay)}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">MÉDIA MENSAL</div>
-                        <div class="valor">${formatarValor(mediaMens, 'USD')}</div>
+                        <div class="valor">${formatarValor(mediaMens, moedaDisplay)}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">MELHOR MÊS</div>
-                        <div class="valor">${melhorMes.mes || '-'}<br><small>${formatarValor(melhorMes.valor || 0, 'USD')}</small></div>
+                        <div class="valor">${melhorMes.mes || '-'}<br><small>${formatarValor(melhorMes.valor || 0, moedaDisplay)}</small></div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">PIOR MÊS</div>
-                        <div class="valor">${piorMes.mes || '-'}<br><small>${formatarValor(piorMes.valor || 0, 'USD')}</small></div>
+                        <div class="valor">${piorMes.mes || '-'}<br><small>${formatarValor(piorMes.valor || 0, moedaDisplay)}</small></div>
                     </div>
                 </div>
             `;
@@ -1393,11 +1395,11 @@
             }
             
             html += `<div class="secao-categorias">
-                <div class="secao-titulo"><i class="fas fa-chart-line"></i> EVOLUÇÃO MENSAL (USD)</div>
+                <div class="secao-titulo"><i class="fas fa-chart-line"></i> EVOLUÇÃO MENSAL (${moedaDisplay})</div>
                 <div class="tabela-container">
                     <table class="tabela-transacoes">
                         <thead><tr>
-                            <th>Mês</th><th>Valor (USD)</th><th>Variação Mensal</th><th>Acumulado (USD)</th>
+                            <th>Mês</th><th>Valor (${moedaDisplay})</th><th>Variação Mensal</th><th>Acumulado (${moedaDisplay})</th>
                         </tr></thead>
                         <tbody>`;
             
@@ -1414,9 +1416,9 @@
                 const c = variacao > 0 ? 'var(--cor-sucesso)' : variacao < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
                 html += `<tr>
                     <td><strong>${mes.mes}</strong></td>
-                    <td>${formatarValor(valorMes, 'USD')}</td>
+                    <td>${formatarValor(valorMes, moedaDisplay)}</td>
                     <td style="color:${c}">${s} ${Math.abs(variacao).toFixed(1)}%</td>
-                    <td>${formatarValor(acumulado, 'USD')}</td>
+                    <td>${formatarValor(acumulado, moedaDisplay)}</td>
                 </tr>`;
             }
             
@@ -1426,7 +1428,7 @@
             if (dadosGrafico.length > 0) {
                 const maxVal = Math.max(...dadosGrafico);
                 html += `<div class="secao-categorias">
-                    <div class="secao-titulo"><i class="fas fa-chart-bar"></i> DISTRIBUIÇÃO MENSAL (USD)</div>
+                    <div class="secao-titulo"><i class="fas fa-chart-bar"></i> DISTRIBUIÇÃO MENSAL (${moedaDisplay})</div>
                     <div class="breakdown-moedas">`;
                 for (let i = 0; i < mesesData.length; i++) {
                     const mes = mesesData[i];
@@ -1435,7 +1437,7 @@
                     html += `<div style="margin-bottom:10px;">
                         <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
                             <span>${mes.mes}</span>
-                            <span>${formatarValor(valor, 'USD')} (${pct.toFixed(0)}%)</span>
+                            <span>${formatarValor(valor, moedaDisplay)} (${pct.toFixed(0)}%)</span>
                         </div>
                         <div style="background:var(--cor-borda);border-radius:10px;overflow:hidden;">
                             <div style="width:${pct}%;background:var(--cor-admin);height:20px;border-radius:10px;"></div>
@@ -1473,7 +1475,7 @@
                             responsive: true,
                             plugins: {
                                 legend: { labels: { color: '#f0e8d0' } },
-                                tooltip: { callbacks: { label: ctx => formatarValor(ctx.raw, 'USD') } }
+                                tooltip: { callbacks: { label: ctx => formatarValor(ctx.raw, moedaDisplay) } }
                             },
                             scales: {
                                 y: { grid: { color: '#2d2819' }, ticks: { color: '#f0e8d0' } },
@@ -1537,7 +1539,7 @@
             graficoDRE = destruirGrafico(graficoDRE);
             graficoDREDonut = destruirGrafico(graficoDREDonut);
             const resultadosDiv = document.getElementById('dreResultados');
-            const moeda = 'USD'; // Sempre exibir em USD quando usar taxas
+            const moeda = taxas ? 'USD' : (dados._moeda && dados._moeda !== 'TODAS' ? dados._moeda : 'USD');
             
             // 🔥 CONVERTER RECEITAS E DESPESAS
             let receitas = dados.total_receitas || 0;
@@ -1735,7 +1737,7 @@
                             responsive: true,
                             plugins: {
                                 legend: { labels: { color: '#f0e8d0' } },
-                                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatarValor(ctx.raw, 'USD')}` } }
+                                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatarValor(ctx.raw, moeda)}` } }
                             },
                             scales: {
                                 y: { grid: { color: '#2d2819' }, ticks: { color: '#f0e8d0' } },
@@ -1745,7 +1747,7 @@
                     });
                 }
             }
-            
+
             // Gráfico donut de despesas
             if (catDesp.length > 0) {
                 let dadosDonut = [];
@@ -1781,7 +1783,7 @@
                             responsive: true,
                             plugins: {
                                 legend: { position: 'right', labels: { color: '#f0e8d0', font: { size: 12 } } },
-                                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatarValor(ctx.raw, 'USD')}` } }
+                                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatarValor(ctx.raw, moeda)}` } }
                             }
                         }
                     });
