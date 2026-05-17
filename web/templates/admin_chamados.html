@@ -845,7 +845,13 @@ function startTypingPoll(id) {
             const r = await fetch(`/api/chamados/${id}/typing_status`);
             const d = await r.json();
             const bubble = document.getElementById('typingBubble');
-            if (bubble) bubble.style.display = d.typing ? 'block' : 'none';
+            if (bubble) {
+                const chat = document.getElementById('chatArea');
+                const nearBottom = chat ? (chat.scrollHeight - chat.scrollTop - chat.clientHeight) < 80 : false;
+                const wasVisible = bubble.style.display !== 'none';
+                bubble.style.display = d.typing ? 'block' : 'none';
+                if (d.typing && !wasVisible && nearBottom && chat) chat.scrollTop = chat.scrollHeight;
+            }
         } catch(e) {}
     }, 2000);
 }
