@@ -354,6 +354,19 @@
                 <option value="">Selecione o parceiro…</option>
             </select>
         </div>
+        <div style="background:rgba(210,158,0,.05);border:1px solid rgba(210,158,0,.2);border-radius:10px;padding:14px;margin-bottom:13px;">
+            <div style="font-size:11px;font-weight:700;color:var(--cor-admin);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;"><i class="fas fa-coins"></i> Registro FX (opcional — calcula P&L no DRE)</div>
+            <div class="fg" style="margin-bottom:10px;">
+                <label>Fechamento Vinculado <small style="text-transform:none;font-weight:400;">(auto-preenche taxa abaixo)</small></label>
+                <select id="dFechamento" class="fc-full" onchange="onFechamentoDespachoChange()">
+                    <option value="">Sem vínculo</option>
+                </select>
+            </div>
+            <div class="fg" style="margin-bottom:0;">
+                <label>Taxa GBP/BRL Real <small style="text-transform:none;font-weight:400;">(BRL por GBP — registra P&L na criação)</small></label>
+                <input id="dTaxaGbpBrl" type="number" step="0.0001" class="fc-full" placeholder="Ex: 6.5800">
+            </div>
+        </div>
         <div class="fg">
             <label>Observações</label>
             <input id="dObs" type="text" class="fc-full" placeholder="Ex: ordens Banco do Brasil solicitadas pelo Gables">
@@ -644,10 +657,42 @@ async function carregarDespachos() {
                     </div>
                 </div>
                 <div class="desp-body" id="dep-${dep.id}">
-                    <div style="font-size:13px;color:var(--cor-texto-secundario);display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;">
+                    <div style="font-size:13px;color:var(--cor-texto-secundario);display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
                         <span>Criado por: <strong style="color:var(--cor-texto);">${dep.criado_por||'—'}</strong></span>
                         ${dep.observacoes?`<span>Obs: <em>${dep.observacoes}</em></span>`:''}
+                        ${dep.valor_gbp?`<span>GBP total ordens: <strong style="color:var(--cor-admin);">£${fmtN(dep.valor_gbp,2)}</strong></span>`:''}
                     </div>
+                    ${dep.taxa_gbp_brl ? `
+                    <div style="margin-bottom:12px;" id="taxa-pl-row-${dep.id}">
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;padding:10px 14px;background:rgba(26,122,82,.05);border:1px solid rgba(26,122,82,.2);border-radius:8px;font-size:13px;align-items:center;">
+                            <span><i class="fas fa-chart-line" style="color:var(--cor-sucesso);margin-right:4px;"></i> <strong>Taxa GBP/BRL:</strong> <span style="font-family:monospace;">${fmtN(dep.taxa_gbp_brl,4)}</span></span>
+                            <span><strong>Lucro GBP:</strong> <span style="font-family:monospace;font-weight:700;color:${parseFloat(dep.lucro_gbp||0)>=0?'var(--cor-sucesso)':'var(--cor-perigo)'};">${parseFloat(dep.lucro_gbp||0)>=0?'+':''}£${fmtN(dep.lucro_gbp,2)}</span></span>
+                            <span><strong>Lucro BRL:</strong> <span style="font-family:monospace;font-weight:700;color:${parseFloat(dep.lucro_brl||0)>=0?'var(--cor-sucesso)':'var(--cor-perigo)'};">${parseFloat(dep.lucro_brl||0)>=0?'+':''} R$ ${fmtN(dep.lucro_brl,2)}</span></span>
+                            <button class="btn-act" style="margin-left:auto;" onclick="event.stopPropagation();abrirTaxaPL('${dep.id}',${dep.taxa_gbp_brl})"><i class="fas fa-pencil"></i> Recalcular</button>
+                        </div>
+                        <div id="taxa-pl-form-${dep.id}" style="display:none;margin-top:8px;">
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                <input type="number" step="0.0001" id="taxa-inp-${dep.id}" class="fc" placeholder="BRL por GBP (ex: 6.5800)" style="width:200px;" value="${dep.taxa_gbp_brl}">
+                                <button class="btn-filter" onclick="event.stopPropagation();salvarTaxaPL('${dep.id}')"><i class="fas fa-check"></i> Recalcular P&L</button>
+                                <button class="btn-filter-ghost" onclick="event.stopPropagation();fecharTaxaPL('${dep.id}')"><i class="fas fa-times"></i></button>
+                            </div>
+                            <div id="taxa-pl-msg-${dep.id}" style="font-size:12px;margin-top:6px;"></div>
+                        </div>
+                    </div>` : `
+                    <div style="margin-bottom:10px;" id="taxa-pl-row-${dep.id}">
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <span style="font-size:12px;color:var(--cor-texto-secundario);"><i class="fas fa-exclamation-circle" style="color:var(--cor-alerta);"></i> P&L não calculado</span>
+                            <button class="btn-act" onclick="event.stopPropagation();abrirTaxaPL('${dep.id}',0)"><i class="fas fa-calculator"></i> Definir Taxa GBP/BRL</button>
+                        </div>
+                        <div id="taxa-pl-form-${dep.id}" style="display:none;margin-top:8px;">
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                <input type="number" step="0.0001" id="taxa-inp-${dep.id}" class="fc" placeholder="BRL por GBP (ex: 6.5800)" style="width:200px;" value="">
+                                <button class="btn-filter" onclick="event.stopPropagation();salvarTaxaPL('${dep.id}')"><i class="fas fa-check"></i> Calcular e Lançar P&L</button>
+                                <button class="btn-filter-ghost" onclick="event.stopPropagation();fecharTaxaPL('${dep.id}')"><i class="fas fa-times"></i></button>
+                            </div>
+                            <div id="taxa-pl-msg-${dep.id}" style="font-size:12px;margin-top:6px;"></div>
+                        </div>
+                    </div>`}
                     ${ordensHtml}
                 </div>
             </div>`;
@@ -655,6 +700,8 @@ async function carregarDespachos() {
     } catch(e) { box.innerHTML = `<div style="color:var(--cor-perigo);padding:20px;">${e.message}</div>`; }
 }
 
+
+let fechamentosAbertos = [];
 
 async function abrirModalDespacho() {
     if (!selecionadas.size) return;
@@ -668,9 +715,65 @@ async function abrirModalDespacho() {
         ${ordens.map(o => `<div class="resumo-row" style="font-size:12px;color:var(--cor-texto-secundario);"><span>${o.cliente_nome||'—'} · ${o.beneficiario_banco||o.tipo_destino||'—'}</span><span>${o.moeda_saida==='BRL'?'R$ ':''}${fmtN(o.valor_saida)} ${o.moeda_saida}</span></div>`).join('')}
         <div class="resumo-row"><span>Total</span><strong style="color:var(--cor-sucesso);">${moeda==='BRL'?'R$ ':''}${fmtN(total)} ${moeda}</strong></div>`;
     if (!parceiros.length) await carregarParceiros();
+    // Carregar fechamentos abertos para o seletor FX
+    try {
+        const rf = await fetch('/api/admin/fx/fechamentos');
+        const df = await rf.json();
+        fechamentosAbertos = (df.fechamentos || []).filter(f => f.status !== 'fechado');
+        const sel = document.getElementById('dFechamento');
+        sel.innerHTML = '<option value="">Sem vínculo</option>';
+        fechamentosAbertos.forEach(f => {
+            const pct = f.valor_usd_estimado > 0 ? Math.round((f.total_coberto_usd / f.valor_usd_estimado) * 100) : 0;
+            sel.innerHTML += `<option value="${f.id}" data-taxa="${f.taxa_gbp_brl_real || f.taxa_gbp_brl_implicita || ''}">${f.parceiro_username} — ${fmtN(f.taxa_usd_brl,4)} USD/BRL — ${pct}% coberto [${f.status}]</option>`;
+        });
+    } catch(e) {}
     document.getElementById('despachoMsg').innerHTML = '';
     document.getElementById('dObs').value = '';
+    document.getElementById('dTaxaGbpBrl').value = '';
     document.getElementById('modalDespacho').classList.add('open');
+}
+
+function onFechamentoDespachoChange() {
+    const sel = document.getElementById('dFechamento');
+    const opt = sel.options[sel.selectedIndex];
+    const taxa = opt && opt.dataset.taxa ? opt.dataset.taxa : '';
+    if (taxa) document.getElementById('dTaxaGbpBrl').value = parseFloat(taxa).toFixed(4);
+    else document.getElementById('dTaxaGbpBrl').value = '';
+}
+
+function abrirTaxaPL(despachoId, taxaAtual) {
+    const form = document.getElementById(`taxa-pl-form-${despachoId}`);
+    if (!form) return;
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    if (taxaAtual) document.getElementById(`taxa-inp-${despachoId}`).value = parseFloat(taxaAtual).toFixed(4);
+}
+
+function fecharTaxaPL(despachoId) {
+    const form = document.getElementById(`taxa-pl-form-${despachoId}`);
+    if (form) form.style.display = 'none';
+}
+
+async function salvarTaxaPL(despachoId) {
+    const inp = document.getElementById(`taxa-inp-${despachoId}`);
+    const msg = document.getElementById(`taxa-pl-msg-${despachoId}`);
+    const taxa = parseFloat(inp?.value || 0);
+    if (!taxa || taxa <= 0) { if(msg) msg.innerHTML = '<span style="color:var(--cor-perigo);">Informe uma taxa válida.</span>'; return; }
+    if(msg) msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculando…';
+    try {
+        const r = await fetch(`/api/admin/despachos/${despachoId}/taxa-pl`, {
+            method: 'PATCH', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ taxa_gbp_brl: taxa })
+        });
+        const d = await r.json();
+        if (d.success) {
+            toast(d.message, 'ok');
+            carregarDespachos();
+        } else {
+            if(msg) msg.innerHTML = `<span style="color:var(--cor-perigo);">${d.message}</span>`;
+        }
+    } catch(e) {
+        if(msg) msg.innerHTML = `<span style="color:var(--cor-perigo);">${e.message}</span>`;
+    }
 }
 
 async function carregarParceiros() {
@@ -692,9 +795,17 @@ async function confirmarDespacho() {
     btn.disabled = true;
     msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando despacho…';
     try {
+        const taxaGbpBrl = parseFloat(document.getElementById('dTaxaGbpBrl').value) || null;
+        const fechamentoId = document.getElementById('dFechamento').value || null;
         const r = await fetch('/api/admin/despachos', {
             method: 'POST', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ ordem_ids: [...selecionadas], parceiro_pagador: parceiro, observacoes: document.getElementById('dObs').value.trim() })
+            body: JSON.stringify({
+                ordem_ids: [...selecionadas],
+                parceiro_pagador: parceiro,
+                observacoes: document.getElementById('dObs').value.trim(),
+                fechamento_id: fechamentoId,
+                taxa_gbp_brl: taxaGbpBrl,
+            })
         });
         const d = await r.json();
         if (d.success) {

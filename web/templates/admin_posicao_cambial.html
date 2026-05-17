@@ -31,16 +31,12 @@
         .badge-admin { background:var(--cor-admin); color:#fff; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:bold; margin-left:10px; }
         .btn-voltar { background:rgba(210,158,0,.15); border:1px solid var(--cor-admin); color:var(--cor-admin); padding:8px 18px; border-radius:var(--borda-radius-pequeno); cursor:pointer; font-size:14px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
         .btn-voltar:hover { background:rgba(210,158,0,.3); }
-
-        /* Tabs */
-        .tabs { display:flex; gap:4px; margin-bottom:24px; border-bottom:1px solid var(--cor-borda); }
-        .tab-btn { background:transparent; border:none; border-bottom:2px solid transparent; color:var(--cor-texto-secundario); padding:10px 22px; cursor:pointer; font-size:14px; font-weight:600; transition:.2s; display:flex; align-items:center; gap:8px; margin-bottom:-1px; }
+        .tabs { display:flex; gap:4px; margin-bottom:24px; border-bottom:1px solid var(--cor-borda); flex-wrap:wrap; }
+        .tab-btn { background:transparent; border:none; border-bottom:2px solid transparent; color:var(--cor-texto-secundario); padding:10px 20px; cursor:pointer; font-size:14px; font-weight:600; transition:.2s; display:flex; align-items:center; gap:8px; margin-bottom:-1px; }
         .tab-btn:hover { color:var(--cor-texto); }
         .tab-btn.active { color:var(--cor-admin); border-bottom-color:var(--cor-admin); }
         .tab-content { display:none; }
         .tab-content.active { display:block; }
-
-        /* Cards resumo */
         .resumo-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
         .resumo-card { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius); padding:18px 20px; }
         .resumo-card .label { font-size:11px; color:var(--cor-texto-secundario); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
@@ -50,8 +46,6 @@
         .vermelho { color:var(--cor-perigo); }
         .amarelo { color:var(--cor-alerta); }
         .azul { color:var(--cor-admin); }
-
-        /* Pool cards */
         .pool-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
         .pool-card { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius); overflow:hidden; }
         .pool-card-header { padding:14px 18px; background:rgba(210,158,0,.1); border-bottom:1px solid var(--cor-borda); display:flex; justify-content:space-between; align-items:center; }
@@ -65,8 +59,6 @@
         .pool-sep { border:none; border-top:1px solid var(--cor-borda); margin:10px 0; }
         .status-bar { height:6px; background:var(--cor-borda); border-radius:3px; margin-top:12px; overflow:hidden; }
         .status-bar-fill { height:100%; border-radius:3px; background:var(--cor-admin); transition:width .4s; }
-
-        /* Formulário compra */
         .form-card { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius); padding:28px; max-width:720px; }
         .form-section-title { font-size:13px; font-weight:700; color:var(--cor-admin); text-transform:uppercase; letter-spacing:.5px; margin-bottom:16px; padding-bottom:8px; border-bottom:1px solid var(--cor-borda); }
         .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
@@ -81,12 +73,14 @@
         .btn-primary { background:var(--cor-admin); color:#fff; border:none; padding:12px 28px; border-radius:var(--borda-radius-pequeno); font-size:15px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
         .btn-primary:hover { background:#eeb600; }
         .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
-        .gbp-rate-row { display:none; }
-        .gbp-rate-row.visible { display:grid; }
-
-        /* Tabelas P&L */
+        .btn-sm { padding:6px 14px; font-size:12px; border-radius:6px; border:none; cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+        .btn-sm-ghost { background:transparent; border:1px solid var(--cor-borda); color:var(--cor-texto-secundario); }
+        .btn-sm-ghost:hover { border-color:var(--cor-admin); color:var(--cor-admin); }
+        .btn-sm-success { background:rgba(46,194,126,.15); color:var(--cor-sucesso); border:1px solid rgba(46,194,126,.3); }
+        .btn-sm-danger  { background:rgba(224,27,36,.1); color:var(--cor-perigo); border:1px solid rgba(224,27,36,.25); }
+        .btn-sm-warn    { background:rgba(243,156,18,.12); color:var(--cor-alerta); border:1px solid rgba(243,156,18,.3); }
         .section-card { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius); overflow:hidden; margin-bottom:20px; }
-        .section-header { padding:14px 20px; border-bottom:1px solid var(--cor-borda); display:flex; justify-content:space-between; align-items:center; }
+        .section-header { padding:14px 20px; border-bottom:1px solid var(--cor-borda); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
         .section-header h3 { font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px; }
         .table-wrap { overflow-x:auto; }
         table { width:100%; border-collapse:collapse; font-size:13px; }
@@ -95,12 +89,11 @@
         tr:hover td { background:rgba(255,255,255,.02); }
         .mono { font-family:monospace; }
         .tag { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
-        .tag-verde { background:rgba(46,194,126,.15); color:var(--cor-sucesso); }
-        .tag-vermelho { background:rgba(224,27,36,.15); color:var(--cor-perigo); }
+        .tag-verde   { background:rgba(46,194,126,.15); color:var(--cor-sucesso); }
+        .tag-vermelho{ background:rgba(224,27,36,.15);  color:var(--cor-perigo); }
         .tag-amarelo { background:rgba(243,156,18,.15); color:var(--cor-alerta); }
-        .tag-azul { background:rgba(210,158,0,.15); color:var(--cor-admin); }
-
-        /* Trader cards */
+        .tag-azul    { background:rgba(210,158,0,.15);  color:var(--cor-admin); }
+        .tag-cinza   { background:rgba(155,155,155,.15);color:var(--cor-texto-secundario); }
         .trader-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:16px; }
         .trader-card { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius); overflow:hidden; }
         .trader-card.urgente { border-color:rgba(224,27,36,.4); }
@@ -115,9 +108,25 @@
         .sugestao-title { font-weight:700; color:var(--cor-admin); margin-bottom:6px; font-size:11px; text-transform:uppercase; }
         .empty-state { text-align:center; padding:50px 20px; color:var(--cor-texto-secundario); }
         .empty-state i { font-size:42px; margin-bottom:12px; display:block; }
-
-        /* Spinner */
         .loading-spin { text-align:center; padding:40px; color:var(--cor-texto-secundario); }
+        /* Fechamentos specific */
+        .fech-expand-row td { background:rgba(210,158,0,.04); white-space:normal; }
+        .fech-detail { padding:16px; }
+        .fech-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+        .fech-sub-title { font-size:11px; font-weight:700; color:var(--cor-texto-secundario); text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+        .cob-item { background:var(--cor-fundo); border:1px solid var(--cor-borda); border-radius:8px; padding:10px 14px; margin-bottom:8px; font-size:12px; }
+        .cob-item:last-child { margin-bottom:0; }
+        .cob-row { display:flex; justify-content:space-between; margin-bottom:3px; }
+        .cob-row:last-child { margin-bottom:0; }
+        .criar-fech-wrap { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius); padding:20px 24px; margin-bottom:20px; }
+        .criar-fech-header { display:flex; justify-content:space-between; align-items:center; cursor:pointer; user-select:none; }
+        .criar-fech-title { font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px; color:var(--cor-admin); }
+        .criar-fech-form { margin-top:20px; padding-top:20px; border-top:1px solid var(--cor-borda); display:none; }
+        .criar-fech-form.aberto { display:block; }
+        .taxa-row { display:flex; align-items:center; gap:8px; }
+        .taxa-inline { background:var(--cor-fundo); border:1px solid var(--cor-borda); color:var(--cor-texto); padding:6px 10px; border-radius:6px; font-size:13px; width:140px; outline:none; }
+        .taxa-inline:focus { border-color:var(--cor-admin); }
+        @media(max-width:700px){.fech-detail-grid{grid-template-columns:1fr;}}
     </style>
 </head>
 <body>
@@ -136,11 +145,10 @@
         </div>
     </div>
 
-    <!-- Tabs -->
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('pool')"><i class="fas fa-layer-group"></i> Pool</button>
-        <button class="tab-btn" onclick="switchTab('comprar')"><i class="fas fa-plus-circle"></i> Registrar Compra</button>
-        <button class="tab-btn" onclick="switchTab('vender')"><i class="fas fa-handshake"></i> Registrar Venda</button>
+        <button class="tab-btn" onclick="switchTab('fechamentos')"><i class="fas fa-handshake"></i> Fechamentos</button>
+        <button class="tab-btn" onclick="switchTab('cobrir')"><i class="fas fa-shield-alt"></i> Cobertura</button>
         <button class="tab-btn" onclick="switchTab('pl')"><i class="fas fa-coins"></i> P&L</button>
         <button class="tab-btn" onclick="switchTab('trader')"><i class="fas fa-bolt"></i> Painel Trader</button>
     </div>
@@ -159,178 +167,134 @@
         </div>
     </div>
 
-    <!-- TAB: COMPRAR -->
-    <div id="tab-comprar" class="tab-content">
+    <!-- TAB: FECHAMENTOS -->
+    <div id="tab-fechamentos" class="tab-content">
+        <div id="fech-resumo" class="resumo-grid"></div>
+
+        <!-- Criar Fechamento -->
+        <div class="criar-fech-wrap">
+            <div class="criar-fech-header" onclick="toggleCriarFechamento()">
+                <span class="criar-fech-title"><i class="fas fa-plus-circle"></i> Criar Fechamento</span>
+                <i class="fas fa-chevron-down" id="criarFechIcon" style="color:var(--cor-texto-secundario);transition:.2s"></i>
+            </div>
+            <div class="criar-fech-form" id="criarFechForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Parceiro *</label>
+                        <select id="fParceiro" class="form-control">
+                            <option value="">Carregando parceiros…</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Taxa USD/BRL negociada *</label>
+                        <input id="fTaxaUsdBrl" type="number" step="0.0001" class="form-control" placeholder="Ex: 5.2000" oninput="calcPreviewFech()">
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Volume USD estimado *</label>
+                        <input id="fValorUsd" type="number" step="0.01" class="form-control" placeholder="Ex: 10000" oninput="calcPreviewFech()">
+                    </div>
+                    <div class="form-group">
+                        <label>Observações</label>
+                        <input id="fObs" type="text" class="form-control" placeholder="Opcional">
+                    </div>
+                </div>
+                <div class="preview-box" id="fPreviewBox" style="display:none">
+                    <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Parceiro recebe:</span><span id="fPvBrl" style="font-weight:700;color:var(--cor-sucesso)"></span></div>
+                    <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Empresa entrega:</span><span id="fPvUsd" style="font-weight:700;color:var(--cor-alerta)"></span></div>
+                </div>
+                <button class="btn-primary" id="btnCriarFech" onclick="criarFechamento()">
+                    <i class="fas fa-handshake"></i> Criar Fechamento
+                </button>
+                <div id="criarFechMsg" style="margin-top:12px;font-size:14px;"></div>
+            </div>
+        </div>
+
+        <!-- Lista de fechamentos -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3><i class="fas fa-list" style="color:var(--cor-admin)"></i> Fechamentos</h3>
+                <button class="btn-sm btn-sm-ghost" onclick="carregarFechamentos()"><i class="fas fa-sync-alt"></i> Atualizar</button>
+            </div>
+            <div class="table-wrap">
+                <table id="fechTable">
+                    <thead><tr>
+                        <th></th>
+                        <th>Data</th>
+                        <th>Parceiro</th>
+                        <th>Taxa USD/BRL</th>
+                        <th>USD Estimado</th>
+                        <th>Coberto</th>
+                        <th>Taxa GBP/BRL real <small style="font-weight:400">(BRL/GBP)</small></th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr></thead>
+                    <tbody id="fechBody">
+                        <tr><td colspan="9" class="loading-spin"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: COBERTURA (formerly Comprar) -->
+    <div id="tab-cobrir" class="tab-content">
         <div class="form-card">
-            <div class="form-section-title"><i class="fas fa-shopping-cart"></i> Nova Compra de Fornecedor</div>
+            <div class="form-section-title"><i class="fas fa-shield-alt"></i> Cobertura — Compra de USD do Banco</div>
+
+            <div class="form-group" style="margin-bottom:16px">
+                <label>Vincular a Fechamento <small style="color:var(--cor-texto-secundario)">(opcional — auto-calcula taxa GBP/BRL real)</small></label>
+                <select id="fcFechamento" class="form-control" onchange="onFechamentoCobChange()">
+                    <option value="">Sem vínculo (compra avulsa de pool)</option>
+                </select>
+            </div>
+            <div id="fcFechInfo" style="display:none;margin-bottom:16px;padding:10px 14px;background:rgba(210,158,0,.07);border:1px solid rgba(210,158,0,.2);border-radius:8px;font-size:12px;"></div>
 
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Moeda Comprada *</label>
-                    <select id="cMoedaC" class="form-control" onchange="calcPreview()">
-                        <option value="">Selecione…</option>
-                        <option value="USD">USD — Dólar Americano</option>
-                        <option value="EUR">EUR — Euro</option>
-                        <option value="GBP">GBP — Libra Esterlina</option>
-                    </select>
+                    <label>Valor USD Comprado *</label>
+                    <input id="fcValorUsd" type="number" step="0.01" class="form-control" placeholder="Ex: 10000" oninput="calcPreviewCob()">
                 </div>
                 <div class="form-group">
-                    <label>Valor Comprado *</label>
-                    <input id="cValorC" type="number" step="0.01" class="form-control" placeholder="Ex: 10000" oninput="calcPreview()">
+                    <label>Valor GBP Pago *</label>
+                    <input id="fcValorGbp" type="number" step="0.01" class="form-control" placeholder="Ex: 7932" oninput="calcPreviewCob()">
                 </div>
             </div>
 
+            <div class="form-section-title" style="margin-top:4px"><i class="fas fa-exchange-alt"></i> Lançamento nas Contas</div>
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Moeda Paga *</label>
-                    <select id="cMoedaP" class="form-control" onchange="onMoedaPagaChange()">
-                        <option value="">Selecione…</option>
-                        <option value="GBP">GBP — Libra Esterlina</option>
-                        <option value="USD">USD — Dólar Americano</option>
-                        <option value="EUR">EUR — Euro</option>
-                    </select>
+                    <label>Conta GBP Debitada (paga) *</label>
+                    <select id="fcContaDeb" class="form-control"><option value="">Carregando…</option></select>
                 </div>
                 <div class="form-group">
-                    <label>Valor Pago *</label>
-                    <input id="cValorP" type="number" step="0.01" class="form-control" placeholder="Ex: 7432" oninput="calcPreview()">
-                </div>
-            </div>
-
-            <div class="form-grid form-grid-3 gbp-rate-row" id="gbpRateRow">
-                <div class="form-group" style="grid-column:1/-1">
-                    <label>Taxa GBP por 1 <span id="gbpRateMoeda">—</span> (necessário pois moeda paga ≠ GBP) *</label>
-                    <input id="cGbpRate" type="number" step="0.000001" class="form-control" placeholder="Ex: 0.7432 (para USD: 1 USD = 0.7432 GBP)" oninput="calcPreview()">
-                </div>
-            </div>
-
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Taxa Negociada</label>
-                    <input id="cTaxa" type="number" step="0.000001" class="form-control" placeholder="Auto-calculada" oninput="calcPreview()">
-                </div>
-                <div class="form-group">
-                    <label>Fornecedor</label>
-                    <input id="cFornecedor" type="text" class="form-control" placeholder="Ex: Barclays, HSBC…">
-                </div>
-            </div>
-
-            <div class="form-section-title" style="margin-top:20px"><i class="fas fa-exchange-alt"></i> Lançamento nas Contas</div>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Conta Debitada (paga) *</label>
-                    <select id="cContaDeb" class="form-control"><option value="">Carregando…</option></select>
-                </div>
-                <div class="form-group">
-                    <label>Conta Creditada (recebe) *</label>
-                    <select id="cContaCred" class="form-control"><option value="">Carregando…</option></select>
+                    <label>Conta USD Creditada (recebe) *</label>
+                    <select id="fcContaCred" class="form-control"><option value="">Carregando…</option></select>
                 </div>
             </div>
 
             <div class="form-group" style="margin-bottom:16px">
                 <label>Observações</label>
-                <input id="cObs" type="text" class="form-control" placeholder="Opcional">
+                <input id="fcObs" type="text" class="form-control" placeholder="Ex: Barclays FX, HSBC…">
             </div>
 
-            <div class="preview-box" id="previewBox" style="display:none">
-                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Operação:</span><span id="pvOp" style="font-weight:600"></span></div>
-                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Custo GBP / unidade:</span><span id="pvCustoGbp" class="mono verde" style="font-weight:700"></span></div>
-                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Custo total em GBP:</span><span id="pvCustoTotal" class="mono"></span></div>
-                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Taxa (moeda_comprada / moeda_paga):</span><span id="pvTaxa" class="mono"></span></div>
+            <div class="preview-box" id="fcPreviewBox" style="display:none">
+                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Operação:</span><span id="fcPvOp" style="font-weight:600"></span></div>
+                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Taxa GBP/USD efetiva:</span><span id="fcPvTaxa" class="mono azul" style="font-weight:700"></span></div>
+                <div class="preview-row" id="fcPvBrlRow" style="display:none"><span style="color:var(--cor-texto-secundario)">Taxa GBP/BRL resultante (com fechamento):</span><span id="fcPvBrl" class="mono verde" style="font-weight:700"></span></div>
             </div>
 
-            <button class="btn-primary" id="btnComprar" onclick="registrarCompra()">
-                <i class="fas fa-check"></i> Registrar Compra
+            <button class="btn-primary" id="btnCobrir" onclick="registrarCobertura()">
+                <i class="fas fa-shield-alt"></i> Registrar Cobertura
             </button>
-            <div id="compraMsg" style="margin-top:14px;font-size:14px;"></div>
-        </div>
-    </div>
-
-    <!-- TAB: VENDER -->
-    <div id="tab-vender" class="tab-content">
-        <div class="form-card">
-            <div class="form-section-title"><i class="fas fa-handshake"></i> Venda de Moeda ao Parceiro Atacado</div>
-
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Parceiro *</label>
-                    <select id="vParceiro" class="form-control" onchange="onParceiroVendaChange()">
-                        <option value="">Selecione o parceiro…</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Moeda Vendida *</label>
-                    <select id="vMoeda" class="form-control" onchange="onMoedaVendaChange()">
-                        <option value="">Selecione…</option>
-                        <option value="USD">USD — Dólar Americano</option>
-                        <option value="EUR">EUR — Euro</option>
-                        <option value="GBP">GBP — Libra Esterlina</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Valor Vendido *</label>
-                    <input id="vValor" type="number" step="0.01" class="form-control" placeholder="Ex: 2100" oninput="calcPreviewVenda()">
-                </div>
-                <div class="form-group">
-                    <label><span id="vLabelTaxaRec">Taxa recebida por unidade vendida</span> *</label>
-                    <input id="vTaxaRec" type="number" step="0.0001" class="form-control" placeholder="Ex: 5.80" oninput="calcPreviewVenda()">
-                </div>
-            </div>
-
-            <div class="form-grid gbp-rate-row" id="vRowGBP">
-                <div class="form-group">
-                    <label><span id="vLabelGBPRec">Taxa GBP por moeda recebida</span> <small style="color:var(--cor-texto-secundario)">(para P&L em GBP)</small></label>
-                    <input id="vTaxaGBPRec" type="number" step="0.000001" class="form-control" placeholder="Ex: 0.7900" oninput="calcPreviewVenda()">
-                    <small style="color:var(--cor-texto-secundario);font-size:11px;margin-top:4px;display:block">Se preenchido: lança Ganhos/Perdas Cambiais no DRE automaticamente</small>
-                </div>
-                <div class="form-group">
-                    <label>Conta Empresa a Debitar <small style="color:var(--cor-texto-secundario)">(opcional — pool)</small></label>
-                    <select id="vContaEmpresa" class="form-control"><option value="">Sem débito no pool (posicionamento)</option></select>
-                </div>
-            </div>
-
-            <div class="form-section-title" style="margin-top:16px"><i class="fas fa-user-tie"></i> Contas do Parceiro</div>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Conta Origem — <span id="vLabelOrigem">moeda recebida</span> (debitar parceiro) *</label>
-                    <select id="vContaParcOrigem" class="form-control" onchange="onContaOrigemChange()"><option value="">Selecione o parceiro primeiro…</option></select>
-                </div>
-                <div class="form-group">
-                    <label>Conta Destino — <span id="vLabelDestino">moeda vendida</span> (creditar parceiro) *</label>
-                    <select id="vContaParcDestino" class="form-control"><option value="">Selecione o parceiro primeiro…</option></select>
-                </div>
-            </div>
-
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Ordem Captação vinculada <small style="color:var(--cor-texto-secundario)">(opcional — marca como paga)</small></label>
-                    <input id="vOrdemId" type="text" class="form-control" placeholder="UUID da ordem">
-                </div>
-                <div class="form-group">
-                    <label>Observações</label>
-                    <input id="vObs" type="text" class="form-control" placeholder="Opcional">
-                </div>
-            </div>
-
-            <div class="preview-box" id="vPreviewBox" style="display:none">
-                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Parceiro recebe (crédito):</span><span id="vPvVend" style="font-weight:700;color:#2ec27e;font-size:16px"></span></div>
-                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Parceiro paga (débito):</span><span id="vPvRec" style="font-weight:700;color:#e01b24;font-size:16px"></span></div>
-                <div class="preview-row" id="vPvPLRow" style="display:none"><span style="color:var(--cor-texto-secundario)">P&L estimado (GBP):</span><span id="vPvPL" class="mono"></span></div>
-            </div>
-
-            <button class="btn-primary" id="btnVender" onclick="registrarVenda()">
-                <i class="fas fa-handshake"></i> Registrar Venda
-            </button>
-            <div id="vendaMsg" style="margin-top:14px;font-size:14px;"></div>
+            <div id="cobMsg" style="margin-top:14px;font-size:14px;"></div>
         </div>
     </div>
 
     <!-- TAB: P&L -->
     <div id="tab-pl" class="tab-content">
         <div id="pl-resumo" class="resumo-grid"></div>
-
         <div class="section-card">
             <div class="section-header">
                 <h3><i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> P&L Realizado — Trades Concluídos</h3>
@@ -348,7 +312,6 @@
                 </table>
             </div>
         </div>
-
         <div class="section-card">
             <div class="section-header">
                 <h3><i class="fas fa-clock" style="color:var(--cor-alerta)"></i> Posições Abertas — Não-Realizado</h3>
@@ -379,21 +342,34 @@
 <script src="/static/js/conta_search.js"></script>
 <script>
     // ── Helpers ──────────────────────────────────────────────────────────────
-    const fmtGBP = v => '£' + parseFloat(v||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
-    const fmtNum = (v,d=2) => parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+    const fmtGBP  = v => '£' + parseFloat(v||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const fmtNum  = (v,d=2) => parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+    const fmtBRL  = v => 'R$ ' + parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
     const fmtDate = d => { if(!d) return '—'; try { const s=d.replace('T',' ').split('.')[0]; const[dt,hr]=s.split(' '); const[y,m,dd]=dt.split('-'); return hr?`${dd}/${m}/${y} ${hr.slice(0,5)}`:`${dd}/${m}/${y}`; } catch{ return d; } };
     const profitClass = v => parseFloat(v||0) >= 0 ? 'verde' : 'vermelho';
     const profitTag   = v => parseFloat(v||0) >= 0 ? 'tag-verde' : 'tag-vermelho';
-    let contasEmpresa = [];
+    const statusTag   = s => ({
+        aberto:  '<span class="tag tag-amarelo"><i class="fas fa-lock-open"></i> Aberto</span>',
+        coberto: '<span class="tag tag-azul"><i class="fas fa-shield-alt"></i> Coberto</span>',
+        fechado: '<span class="tag tag-verde"><i class="fas fa-check"></i> Fechado</span>',
+    }[s] || `<span class="tag tag-cinza">${s}</span>`);
+
+    let contasEmpresa  = [];
+    let parceirosCache = [];
+    let fechamentosCache = [];
+    let expandedFech   = null;
 
     // ── Tabs ─────────────────────────────────────────────────────────────────
     function switchTab(name) {
-        document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['pool','comprar','vender','pl','trader'][i] === name));
+        const names = ['pool','fechamentos','cobrir','pl','trader'];
+        document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', names[i] === name));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.getElementById(`tab-${name}`).classList.add('active');
-        if (name === 'pool')    carregarPool();
-        if (name === 'pl')      carregarPL();
-        if (name === 'trader')  carregarTrader();
+        if (name === 'pool')        carregarPool();
+        if (name === 'fechamentos') carregarFechamentos();
+        if (name === 'cobrir')      { carregarContasEmpresa(); carregarFechamentosSelector(); }
+        if (name === 'pl')          carregarPL();
+        if (name === 'trader')      carregarTrader();
     }
 
     // ── Pool ─────────────────────────────────────────────────────────────────
@@ -401,12 +377,8 @@
         if (!confirm('Zerar o pool vai iniciar um novo ciclo de cálculo. O histórico anterior será preservado. Confirma?')) return;
         const res = await fetch('/api/admin/fx/pool/reset', {method:'POST'});
         const d   = await res.json();
-        if (d.success) {
-            alert(d.message);
-            carregarPool();
-        } else {
-            alert('Erro: ' + d.message);
-        }
+        if (d.success) { alert(d.message); carregarPool(); }
+        else alert('Erro: ' + d.message);
     }
 
     async function carregarPool() {
@@ -415,16 +387,10 @@
             const data = await res.json();
             if (!data.success) return;
             document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('pt-BR');
-
-            // Info último reset
             const resetInfo = document.getElementById('pool-reset-info');
-            if (data.ultimo_reset) {
-                resetInfo.textContent = `Ciclo atual desde: ${new Date(data.ultimo_reset).toLocaleString('pt-BR')}`;
-            } else {
-                resetInfo.textContent = 'Ciclo desde o início (sem resets)';
-            }
-
-            // Resumo
+            resetInfo.textContent = data.ultimo_reset
+                ? `Ciclo atual desde: ${new Date(data.ultimo_reset).toLocaleString('pt-BR')}`
+                : 'Ciclo desde o início (sem resets)';
             const totalCustoGBP = data.pool.reduce((a,p) => a + p.total_custo_gbp, 0);
             const totalDisp     = data.pool.filter(p=>p.moeda==='USD').reduce((a,p)=>a+p.disponivel,0);
             const totalComp     = data.pool.reduce((a,p) => a + p.comprometido, 0);
@@ -434,12 +400,10 @@
                 <div class="resumo-card"><div class="label">Comprometido</div><div class="valor amarelo">${fmtNum(totalComp)} unid.</div><div class="sub">pendentes de entrega</div></div>
                 <div class="resumo-card"><div class="label">Moedas no Pool</div><div class="valor azul">${data.pool.length}</div><div class="sub">currencies rastreadas</div></div>
             `;
-
             if (!data.pool.length) {
-                document.getElementById('pool-cards').innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>Nenhuma compra registrada no pool ainda.</p></div>';
+                document.getElementById('pool-cards').innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>Nenhuma cobertura registrada no pool ainda.</p></div>';
                 return;
             }
-
             document.getElementById('pool-cards').innerHTML = data.pool.map(p => {
                 const pct = p.saldo_empresa > 0 ? Math.min(100, (p.disponivel / p.saldo_empresa) * 100) : 0;
                 const barColor = pct > 60 ? 'var(--cor-sucesso)' : pct > 30 ? 'var(--cor-alerta)' : 'var(--cor-perigo)';
@@ -448,7 +412,7 @@
                 const isShort = p.short || p.total_pool < 0;
                 const badgeHtml = isShort
                     ? `<span class="pool-badge" style="background:rgba(231,76,60,.15);color:var(--cor-perigo);border:1px solid rgba(231,76,60,.3);">⚠ Posição Curta</span>`
-                    : `<span class="pool-badge">${p.num_compras || 0} compras</span>`;
+                    : `<span class="pool-badge">${p.num_compras || 0} coberturas</span>`;
                 const wacHtml = isShort
                     ? `<div class="pool-row"><span class="pool-lbl">WAC</span><span class="pool-val" style="color:var(--cor-texto-secundario);font-style:italic;">Aguardando cobertura</span></div>`
                     : `<div class="pool-row"><span class="pool-lbl">WAC (GBP/unit)</span><span class="pool-val azul">${fmtNum(p.wac_gbp,6)}</span></div>
@@ -456,15 +420,12 @@
                        <div class="pool-row"><span class="pool-lbl">WAC (BRL/unit)</span><span class="pool-val">${fmtNum(p.wac_brl,4)}</span></div>
                        <div class="pool-row"><span class="pool-lbl">Mercado atual (GBP)</span><span class="pool-val ${diff>=0?'verde':'vermelho'}">${fmtNum(p.market_gbp,6)} <small>(${diff>=0?'+':''}${fmtNum(diffPct,2)}%)</small></span></div>`;
                 return `
-                <div class="pool-card" style="${isShort ? 'border-color:rgba(231,76,60,.35);' : ''}">
-                    <div class="pool-card-header">
-                        <span class="pool-moeda">${p.moeda}</span>
-                        ${badgeHtml}
-                    </div>
+                <div class="pool-card" style="${isShort?'border-color:rgba(231,76,60,.35);':''}">
+                    <div class="pool-card-header"><span class="pool-moeda">${p.moeda}</span>${badgeHtml}</div>
                     <div class="pool-body">
                         ${wacHtml}
                         <hr class="pool-sep">
-                        <div class="pool-row"><span class="pool-lbl">Posição pool</span><span class="pool-val ${isShort?'vermelho':''}">  ${fmtNum(p.total_pool,2)} ${p.moeda}</span></div>
+                        <div class="pool-row"><span class="pool-lbl">Posição pool</span><span class="pool-val ${isShort?'vermelho':''}">${fmtNum(p.total_pool,2)} ${p.moeda}</span></div>
                         <div class="pool-row"><span class="pool-lbl">Saldo empresa</span><span class="pool-val">${fmtNum(p.saldo_empresa,2)} ${p.moeda}</span></div>
                         <div class="pool-row"><span class="pool-lbl">Comprometido</span><span class="pool-val amarelo">${fmtNum(p.comprometido,2)} ${p.moeda}</span></div>
                         <div class="pool-row"><span class="pool-lbl">Disponível</span><span class="pool-val ${p.disponivel>=0?'verde':'vermelho'}">${fmtNum(p.disponivel,2)} ${p.moeda}</span></div>
@@ -477,16 +438,239 @@
         }
     }
 
-    // ── Comprar ───────────────────────────────────────────────────────────────
+    // ── Fechamentos ───────────────────────────────────────────────────────────
+    function toggleCriarFechamento() {
+        const form = document.getElementById('criarFechForm');
+        const icon = document.getElementById('criarFechIcon');
+        const open = form.classList.toggle('aberto');
+        icon.style.transform = open ? 'rotate(180deg)' : '';
+    }
+
+    function calcPreviewFech() {
+        const taxa = parseFloat(document.getElementById('fTaxaUsdBrl').value) || 0;
+        const usd  = parseFloat(document.getElementById('fValorUsd').value) || 0;
+        const box  = document.getElementById('fPreviewBox');
+        if (!taxa || !usd) { box.style.display = 'none'; return; }
+        box.style.display = 'block';
+        const brl = usd * taxa;
+        document.getElementById('fPvBrl').textContent = fmtBRL(brl);
+        document.getElementById('fPvUsd').textContent = fmtNum(usd, 2) + ' USD';
+    }
+
+    async function criarFechamento() {
+        const parceiro   = document.getElementById('fParceiro').value;
+        const taxaUsdBrl = parseFloat(document.getElementById('fTaxaUsdBrl').value) || 0;
+        const valorUsd   = parseFloat(document.getElementById('fValorUsd').value) || 0;
+        const obs        = document.getElementById('fObs').value.trim();
+        const msg        = document.getElementById('criarFechMsg');
+        if (!parceiro || !taxaUsdBrl || !valorUsd) {
+            msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Preencha todos os campos obrigatórios.</span>';
+            return;
+        }
+        const btn = document.getElementById('btnCriarFech');
+        btn.disabled = true;
+        msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando…';
+        try {
+            const res = await fetch('/api/admin/fx/fechamentos', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ parceiro_username:parceiro, taxa_usd_brl:taxaUsdBrl, valor_usd_estimado:valorUsd, observacoes:obs })
+            });
+            const d = await res.json();
+            if (d.success) {
+                msg.innerHTML = `<span style="color:var(--cor-sucesso)"><i class="fas fa-check-circle"></i> ${d.message}</span>`;
+                ['fTaxaUsdBrl','fValorUsd','fObs'].forEach(id => document.getElementById(id).value = '');
+                document.getElementById('fPreviewBox').style.display = 'none';
+                carregarFechamentos();
+            } else {
+                msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${d.message}</span>`;
+            }
+        } catch(e) {
+            msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${e.message}</span>`;
+        }
+        btn.disabled = false;
+    }
+
+    async function carregarFechamentos() {
+        document.getElementById('fechBody').innerHTML = '<tr><td colspan="9" class="loading-spin"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+        try {
+            const res  = await fetch('/api/admin/fx/fechamentos');
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+            fechamentosCache = data.fechamentos || [];
+            renderFechamentos();
+        } catch(e) {
+            document.getElementById('fechBody').innerHTML = `<tr><td colspan="9" style="color:var(--cor-perigo);padding:20px">${e.message}</td></tr>`;
+        }
+    }
+
+    function renderFechamentos() {
+        const list = fechamentosCache;
+        const abertos  = list.filter(f => f.status === 'aberto').length;
+        const cobertos = list.filter(f => f.status === 'coberto').length;
+        const fechados = list.filter(f => f.status === 'fechado').length;
+        const totalUsd = list.reduce((a,f) => a + parseFloat(f.valor_usd_estimado || 0), 0);
+        document.getElementById('fech-resumo').innerHTML = `
+            <div class="resumo-card"><div class="label">Abertos</div><div class="valor amarelo">${abertos}</div><div class="sub">aguardando cobertura</div></div>
+            <div class="resumo-card"><div class="label">Cobertos</div><div class="valor azul">${cobertos}</div><div class="sub">USD adquirido</div></div>
+            <div class="resumo-card"><div class="label">Fechados</div><div class="valor verde">${fechados}</div><div class="sub">concluídos</div></div>
+            <div class="resumo-card"><div class="label">USD Total Estimado</div><div class="valor">${fmtNum(totalUsd,2)} USD</div><div class="sub">em todos os fechamentos</div></div>
+        `;
+        if (!list.length) {
+            document.getElementById('fechBody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--cor-texto-secundario)"><i class="fas fa-inbox" style="margin-right:8px"></i>Nenhum fechamento registrado.</td></tr>';
+            return;
+        }
+        const rows = list.map(f => {
+            const cobPct = f.valor_usd_estimado > 0 ? Math.min(100, (f.total_coberto_usd / f.valor_usd_estimado) * 100) : 0;
+            const cobColor = cobPct >= 95 ? 'var(--cor-sucesso)' : cobPct > 50 ? 'var(--cor-alerta)' : 'var(--cor-perigo)';
+            const taxaReal = f.taxa_gbp_brl_real || f.taxa_gbp_brl_implicita;
+            const taxaHtml = taxaReal
+                ? `<span class="mono verde">${fmtNum(taxaReal, 4)}</span><small style="color:var(--cor-texto-secundario);margin-left:4px">${f.taxa_gbp_brl_real ? '' : '(est.)'}</small>`
+                : `<span class="taxa-row">
+                    <input type="number" step="0.0001" class="taxa-inline" id="taxaInp_${f.id}" placeholder="0.0000">
+                    <button class="btn-sm btn-sm-warn" onclick="setTaxaGbpBrl('${f.id}')"><i class="fas fa-check"></i></button>
+                   </span>`;
+            const isExpanded = expandedFech === f.id;
+            return `
+            <tr id="frow_${f.id}" style="cursor:pointer" onclick="toggleExpandFech('${f.id}')">
+                <td><i class="fas fa-chevron-right" id="ficon_${f.id}" style="font-size:10px;color:var(--cor-texto-secundario);transition:.2s;${isExpanded?'transform:rotate(90deg)':''}"></i></td>
+                <td style="font-size:12px;color:var(--cor-texto-secundario)">${fmtDate(f.created_at)}</td>
+                <td style="font-weight:600">${f.parceiro_username}</td>
+                <td class="mono">${fmtNum(f.taxa_usd_brl, 4)}</td>
+                <td class="mono">${fmtNum(f.valor_usd_estimado, 2)} USD</td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <span class="mono" style="color:${cobColor}">${fmtNum(f.total_coberto_usd,2)} USD</span>
+                        <div style="width:60px;height:4px;background:var(--cor-borda);border-radius:2px;overflow:hidden">
+                            <div style="width:${cobPct}%;height:100%;background:${cobColor};border-radius:2px"></div>
+                        </div>
+                    </div>
+                </td>
+                <td onclick="event.stopPropagation()">${taxaHtml}</td>
+                <td>${statusTag(f.status)}</td>
+                <td onclick="event.stopPropagation()">
+                    <div style="display:flex;gap:6px;flex-wrap:wrap">
+                        ${f.status !== 'fechado' ? `<button class="btn-sm btn-sm-success" onclick="fecharFechamento('${f.id}')"><i class="fas fa-check-double"></i> Fechar</button>` : ''}
+                        ${f.status === 'aberto' ? `<button class="btn-sm btn-sm-ghost" onclick="irParaCobertura('${f.id}')"><i class="fas fa-shield-alt"></i> Cobrir</button>` : ''}
+                    </div>
+                </td>
+            </tr>
+            <tr id="fexpand_${f.id}" class="fech-expand-row" style="display:${isExpanded?'table-row':'none'}">
+                <td colspan="9"><div class="fech-detail" id="fdetail_${f.id}">
+                    ${isExpanded ? buildFechDetail(f) : '<div class="loading-spin"><i class="fas fa-spinner fa-spin"></i></div>'}
+                </div></td>
+            </tr>`;
+        }).join('');
+        document.getElementById('fechBody').innerHTML = rows;
+    }
+
+    function buildFechDetail(f) {
+        const cobsHtml = f.coberturas && f.coberturas.length
+            ? f.coberturas.map(c => `
+                <div class="cob-item">
+                    <div class="cob-row"><span style="color:var(--cor-texto-secundario)">Data</span><span>${fmtDate(c.created_at)}</span></div>
+                    <div class="cob-row"><span style="color:var(--cor-texto-secundario)">USD</span><span class="mono amarelo">${fmtNum(c.valor_usd,2)} USD</span></div>
+                    <div class="cob-row"><span style="color:var(--cor-texto-secundario)">GBP Pago</span><span class="mono">${fmtGBP(c.valor_gbp)}</span></div>
+                    <div class="cob-row"><span style="color:var(--cor-texto-secundario)">Taxa GBP/USD</span><span class="mono azul">${fmtNum(c.taxa_gbp_usd,6)}</span></div>
+                </div>`).join('')
+            : '<p style="color:var(--cor-texto-secundario);font-size:13px">Nenhuma cobertura registrada ainda.</p>';
+
+        const totCobGbp = f.total_coberto_gbp || 0;
+        const taxa_usd_brl = parseFloat(f.taxa_usd_brl || 0);
+        const taxa_real = f.taxa_gbp_brl_real || f.taxa_gbp_brl_implicita;
+        const plHtml = taxa_real
+            ? `<div class="cob-item">
+                <div class="cob-row"><span style="color:var(--cor-texto-secundario)">GBP investido</span><span class="mono">${fmtGBP(totCobGbp)}</span></div>
+                <div class="cob-row"><span style="color:var(--cor-texto-secundario)">Taxa GBP/BRL real</span><span class="mono azul">${fmtNum(taxa_real,4)}</span></div>
+                <div class="cob-row"><span style="color:var(--cor-texto-secundario)">BRL gerado est.</span><span class="mono verde">${fmtBRL(totCobGbp * taxa_real)}</span></div>
+               </div>`
+            : '<p style="color:var(--cor-texto-secundario);font-size:13px">Defina a taxa GBP/BRL para ver o P&L.</p>';
+
+        return `<div class="fech-detail-grid">
+            <div>
+                <div class="fech-sub-title"><i class="fas fa-shield-alt"></i> Coberturas (${f.coberturas ? f.coberturas.length : 0})</div>
+                ${cobsHtml}
+            </div>
+            <div>
+                <div class="fech-sub-title"><i class="fas fa-chart-line"></i> Resumo P&L</div>
+                ${plHtml}
+                <div style="margin-top:16px">
+                    <div class="fech-sub-title"><i class="fas fa-info-circle"></i> Detalhe</div>
+                    <div class="cob-item">
+                        <div class="cob-row"><span style="color:var(--cor-texto-secundario)">Parceiro</span><span>${f.parceiro_username}</span></div>
+                        <div class="cob-row"><span style="color:var(--cor-texto-secundario)">Taxa USD/BRL</span><span class="mono">${fmtNum(f.taxa_usd_brl,4)}</span></div>
+                        <div class="cob-row"><span style="color:var(--cor-texto-secundario)">USD Estimado</span><span class="mono">${fmtNum(f.valor_usd_estimado,2)} USD</span></div>
+                        <div class="cob-row"><span style="color:var(--cor-texto-secundario)">USD Coberto</span><span class="mono ${f.total_coberto_usd >= f.valor_usd_estimado * 0.95 ? 'verde' : 'amarelo'}">${fmtNum(f.total_coberto_usd,2)} USD</span></div>
+                        ${f.observacoes ? `<div class="cob-row"><span style="color:var(--cor-texto-secundario)">Obs</span><span>${f.observacoes}</span></div>` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function toggleExpandFech(id) {
+        const expandRow = document.getElementById(`fexpand_${id}`);
+        const icon      = document.getElementById(`ficon_${id}`);
+        if (!expandRow) return;
+        const open = expandRow.style.display === 'none';
+        // Collapse previous
+        if (expandedFech && expandedFech !== id) {
+            const prev = document.getElementById(`fexpand_${expandedFech}`);
+            const prevIcon = document.getElementById(`ficon_${expandedFech}`);
+            if (prev)     prev.style.display = 'none';
+            if (prevIcon) prevIcon.style.transform = '';
+        }
+        expandedFech = open ? id : null;
+        expandRow.style.display = open ? 'table-row' : 'none';
+        icon.style.transform = open ? 'rotate(90deg)' : '';
+        if (open) {
+            const fdata = fechamentosCache.find(f => f.id === id);
+            if (fdata) document.getElementById(`fdetail_${id}`).innerHTML = buildFechDetail(fdata);
+        }
+    }
+
+    async function setTaxaGbpBrl(id) {
+        const inp = document.getElementById(`taxaInp_${id}`);
+        const taxa = parseFloat(inp ? inp.value : 0);
+        if (!taxa || taxa <= 0) { alert('Informe uma taxa válida'); return; }
+        const res = await fetch(`/api/admin/fx/fechamentos/${id}`, {
+            method:'PATCH', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ taxa_gbp_brl_real: taxa })
+        });
+        const d = await res.json();
+        if (d.success) carregarFechamentos();
+        else alert('Erro: ' + d.message);
+    }
+
+    async function fecharFechamento(id) {
+        if (!confirm('Fechar este fechamento? Isso irá registrar uma entrada em pool_vendas e marcar como concluído.')) return;
+        const res = await fetch(`/api/admin/fx/fechamentos/${id}`, {
+            method:'PATCH', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ status: 'fechado' })
+        });
+        const d = await res.json();
+        if (d.success) carregarFechamentos();
+        else alert('Erro: ' + d.message);
+    }
+
+    function irParaCobertura(fechamentoId) {
+        switchTab('cobrir');
+        setTimeout(() => {
+            const sel = document.getElementById('fcFechamento');
+            if (sel) { sel.value = fechamentoId; onFechamentoCobChange(); }
+        }, 300);
+    }
+
+    // ── Cobertura (formerly Comprar) ──────────────────────────────────────────
     async function carregarContasEmpresa() {
+        if (contasEmpresa.length) return;
         try {
             const res  = await fetch('/api/admin/contas-bancarias');
             const data = await res.json();
             contasEmpresa = data.contas || [];
-            const deb  = document.getElementById('cContaDeb');
-            const cred = document.getElementById('cContaCred');
-            deb.innerHTML  = '<option value="">Selecione a conta debitada…</option>';
-            cred.innerHTML = '<option value="">Selecione a conta creditada…</option>';
+            const deb  = document.getElementById('fcContaDeb');
+            const cred = document.getElementById('fcContaCred');
+            deb.innerHTML  = '<option value="">Conta GBP debitada…</option>';
+            cred.innerHTML = '<option value="">Conta USD creditada…</option>';
             contasEmpresa.forEach(c => {
                 const opt = `<option value="${c.numero}">${c.numero} — ${c.banco||''} (${c.moeda}) saldo: ${fmtNum(c.saldo)}</option>`;
                 deb.innerHTML  += opt;
@@ -495,97 +679,108 @@
         } catch(e) { console.error(e); }
     }
 
-    function onMoedaPagaChange() {
-        const mp = document.getElementById('cMoedaP').value;
-        const row = document.getElementById('gbpRateRow');
-        const lbl = document.getElementById('gbpRateMoeda');
-        if (mp && mp !== 'GBP') {
-            row.classList.add('visible');
-            lbl.textContent = mp;
-        } else {
-            row.classList.remove('visible');
-        }
-        calcPreview();
+    async function carregarFechamentosSelector() {
+        try {
+            const res  = await fetch('/api/admin/fx/fechamentos');
+            const data = await res.json();
+            const sel  = document.getElementById('fcFechamento');
+            const abertos = (data.fechamentos || []).filter(f => f.status !== 'fechado');
+            sel.innerHTML = '<option value="">Sem vínculo (compra avulsa de pool)</option>';
+            abertos.forEach(f => {
+                const cobPct = f.valor_usd_estimado > 0 ? Math.round((f.total_coberto_usd / f.valor_usd_estimado) * 100) : 0;
+                sel.innerHTML += `<option value="${f.id}">${f.parceiro_username} — ${fmtNum(f.taxa_usd_brl,4)} USD/BRL — ${fmtNum(f.valor_usd_estimado,0)} USD (${cobPct}% coberto) [${f.status}]</option>`;
+            });
+        } catch(e) { console.error(e); }
     }
 
-    function calcPreview() {
-        const mc   = document.getElementById('cMoedaC').value;
-        const vc   = parseFloat(document.getElementById('cValorC').value) || 0;
-        const mp   = document.getElementById('cMoedaP').value;
-        const vp   = parseFloat(document.getElementById('cValorP').value) || 0;
-        const gbpR = parseFloat(document.getElementById('cGbpRate').value) || 0;
-        const box  = document.getElementById('previewBox');
+    function onFechamentoCobChange() {
+        const sel  = document.getElementById('fcFechamento');
+        const fid  = sel.value;
+        const info = document.getElementById('fcFechInfo');
+        if (!fid) { info.style.display = 'none'; return; }
+        const fdata = (window._fechData || []).find(f => f.id === fid);
+        if (!fdata) {
+            fetch('/api/admin/fx/fechamentos').then(r=>r.json()).then(d => {
+                window._fechData = d.fechamentos || [];
+                const fd = window._fechData.find(f => f.id === fid);
+                if (fd) showFechInfo(fd);
+            });
+        } else { showFechInfo(fdata); }
+        calcPreviewCob();
+    }
 
-        if (!mc || !vc || !mp || !vp) { box.style.display = 'none'; return; }
+    function showFechInfo(f) {
+        const info = document.getElementById('fcFechInfo');
+        const restante = Math.max(0, parseFloat(f.valor_usd_estimado||0) - parseFloat(f.total_coberto_usd||0));
+        info.style.display = 'block';
+        info.innerHTML = `<strong>${f.parceiro_username}</strong> — Taxa: <strong>${fmtNum(f.taxa_usd_brl,4)} USD/BRL</strong> |
+            Estimado: <strong>${fmtNum(f.valor_usd_estimado,0)} USD</strong> |
+            Coberto: <strong class="${restante>0?'amarelo':'verde'}">${fmtNum(f.total_coberto_usd,0)} USD</strong> |
+            Faltam: <strong class="${restante>0?'vermelho':'verde'}">${fmtNum(restante,0)} USD</strong>`;
+    }
 
-        const taxa = vc > 0 && vp > 0 ? vc / vp : 0;
-        let custoGbp = 0;
-        if (mp === 'GBP') {
-            custoGbp = vp / vc;
-        } else if (gbpR > 0) {
-            custoGbp = (vp * gbpR) / vc;
-        }
-
-        // Preenche taxa automaticamente se vazia
-        const taxaInput = document.getElementById('cTaxa');
-        if (!taxaInput.value) taxaInput.value = taxa.toFixed(6);
-
+    function calcPreviewCob() {
+        const vUsd = parseFloat(document.getElementById('fcValorUsd').value) || 0;
+        const vGbp = parseFloat(document.getElementById('fcValorGbp').value) || 0;
+        const box  = document.getElementById('fcPreviewBox');
+        if (!vUsd || !vGbp) { box.style.display = 'none'; return; }
         box.style.display = 'block';
-        document.getElementById('pvOp').textContent = `Comprar ${fmtNum(vc,2)} ${mc} pagando ${fmtNum(vp,2)} ${mp}`;
-        document.getElementById('pvTaxa').textContent = `${taxa.toFixed(6)} ${mc}/${mp}`;
-        if (custoGbp > 0) {
-            document.getElementById('pvCustoGbp').textContent = `${custoGbp.toFixed(6)} GBP/${mc}`;
-            document.getElementById('pvCustoTotal').textContent = `£${(custoGbp * vc).toFixed(2)}`;
-        } else {
-            document.getElementById('pvCustoGbp').textContent = 'informe a taxa GBP acima';
-            document.getElementById('pvCustoTotal').textContent = '—';
-        }
+        const taxaGbpUsd = vGbp / vUsd;
+        document.getElementById('fcPvOp').textContent   = `Comprar ${fmtNum(vUsd,2)} USD pagando £${fmtNum(vGbp,2)}`;
+        document.getElementById('fcPvTaxa').textContent = `${taxaGbpUsd.toFixed(6)} GBP/USD`;
+        // If linked to fechamento, show implied GBP/BRL
+        const fid = document.getElementById('fcFechamento').value;
+        const brlRow = document.getElementById('fcPvBrlRow');
+        if (fid) {
+            const fdata = (window._fechData || []).find(f => f.id === fid);
+            if (fdata) {
+                const taxaUsdBrl = parseFloat(fdata.taxa_usd_brl || 0);
+                if (taxaUsdBrl > 0) {
+                    const taxaGbpBrl = (vUsd / vGbp) * taxaUsdBrl;
+                    document.getElementById('fcPvBrl').textContent = `${fmtNum(taxaGbpBrl,4)} BRL/GBP`;
+                    brlRow.style.display = 'flex';
+                } else { brlRow.style.display = 'none'; }
+            } else { brlRow.style.display = 'none'; }
+        } else { brlRow.style.display = 'none'; }
     }
 
-    async function registrarCompra() {
-        const mc  = document.getElementById('cMoedaC').value;
-        const vc  = parseFloat(document.getElementById('cValorC').value) || 0;
-        const mp  = document.getElementById('cMoedaP').value;
-        const vp  = parseFloat(document.getElementById('cValorP').value) || 0;
-        const taxa = parseFloat(document.getElementById('cTaxa').value) || 0;
-        const gbpRate = parseFloat(document.getElementById('cGbpRate').value) || null;
-        const fornecedor = document.getElementById('cFornecedor').value;
-        const contaDeb   = document.getElementById('cContaDeb').value;
-        const contaCred  = document.getElementById('cContaCred').value;
-        const obs = document.getElementById('cObs').value;
-        const msg = document.getElementById('compraMsg');
-
-        if (!mc || !vc || !mp || !vp || !contaDeb || !contaCred) {
+    async function registrarCobertura() {
+        const vUsd    = parseFloat(document.getElementById('fcValorUsd').value) || 0;
+        const vGbp    = parseFloat(document.getElementById('fcValorGbp').value) || 0;
+        const contaDeb  = document.getElementById('fcContaDeb').value;
+        const contaCred = document.getElementById('fcContaCred').value;
+        const obs       = document.getElementById('fcObs').value.trim();
+        const fechId    = document.getElementById('fcFechamento').value || null;
+        const msg       = document.getElementById('cobMsg');
+        if (!vUsd || !vGbp || !contaDeb || !contaCred) {
             msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Preencha todos os campos obrigatórios.</span>';
             return;
         }
-        if (mp !== 'GBP' && !gbpRate) {
-            msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Informe a taxa GBP por ' + mp + ' para calcular o custo correto.</span>';
-            return;
-        }
-
-        const btn = document.getElementById('btnComprar');
+        const btn = document.getElementById('btnCobrir');
         btn.disabled = true;
         msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando…';
-
         try {
-            const res  = await fetch('/api/admin/fx/compra', {
-                method: 'POST',
-                headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ moeda_comprada:mc, valor_comprado:vc, moeda_paga:mp, valor_pago:vp, taxa, gbp_rate_moeda_paga:gbpRate, fornecedor, conta_debitada:contaDeb, conta_creditada:contaCred, observacoes:obs })
+            const res = await fetch('/api/admin/fx/coberturas', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    fechamento_id: fechId,
+                    valor_usd: vUsd, valor_gbp: vGbp,
+                    taxa_gbp_usd: vGbp / vUsd,
+                    conta_debitada: contaDeb, conta_creditada: contaCred,
+                    observacoes: obs, tipo: 'compra_banco',
+                })
             });
-            const data = await res.json();
-            if (data.success) {
-                msg.innerHTML = `<span style="color:var(--cor-sucesso)"><i class="fas fa-check-circle"></i> ${data.message}</span>`;
-                ['cMoedaC','cValorC','cMoedaP','cValorP','cTaxa','cGbpRate','cFornecedor','cObs'].forEach(id => document.getElementById(id).value = '');
-                document.getElementById('previewBox').style.display = 'none';
-                document.getElementById('gbpRateRow').classList.remove('visible');
+            const d = await res.json();
+            if (d.success) {
+                msg.innerHTML = `<span style="color:var(--cor-sucesso)"><i class="fas fa-check-circle"></i> ${d.message}</span>`;
+                ['fcValorUsd','fcValorGbp','fcObs'].forEach(id => document.getElementById(id).value = '');
+                document.getElementById('fcPreviewBox').style.display = 'none';
                 carregarPool();
             } else {
-                msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${data.message}</span>`;
+                msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${d.message}</span>`;
             }
         } catch(e) {
-            msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> Erro: ${e.message}</span>`;
+            msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${e.message}</span>`;
         }
         btn.disabled = false;
     }
@@ -597,18 +792,13 @@
             const res  = await fetch('/api/admin/fx/pl');
             const data = await res.json();
             if (!data.success) return;
-
-            // Resumo
             document.getElementById('pl-resumo').innerHTML = `
                 <div class="resumo-card"><div class="label">Realizado (GBP)</div><div class="valor ${profitClass(data.total_realizado_gbp)}">${fmtGBP(data.total_realizado_gbp)}</div><div class="sub">trades fechados</div></div>
                 <div class="resumo-card"><div class="label">Não-Realizado (GBP)</div><div class="valor ${profitClass(data.total_nao_realizado_gbp)}">${fmtGBP(data.total_nao_realizado_gbp)}</div><div class="sub">posições abertas</div></div>
                 <div class="resumo-card"><div class="label">Total Geral (GBP)</div><div class="valor ${profitClass(data.total_geral_gbp)}">${fmtGBP(data.total_geral_gbp)}</div><div class="sub">realizado + aberto</div></div>
                 <div class="resumo-card"><div class="label">Trades analisados</div><div class="valor azul">${data.trades.length}</div><div class="sub">últimos 300</div></div>
             `;
-
             document.getElementById('pl-count').textContent = `${data.trades.length} operações`;
-
-            // Tabela realizado
             if (!data.trades.length) {
                 document.getElementById('plTableBody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--cor-texto-secundario)">Nenhum trade encontrado</td></tr>';
             } else {
@@ -626,8 +816,6 @@
                         <td><span class="tag ${profitTag(t.profit_gbp)}">${t.margin_pct}%</span></td>
                     </tr>`).join('');
             }
-
-            // Tabela posições abertas
             if (!data.posicoes_abertas.length) {
                 document.getElementById('plAbertaBody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--cor-texto-secundario)">Sem posições abertas</td></tr>';
             } else {
@@ -656,23 +844,19 @@
             const res  = await fetch('/api/admin/fx/trader');
             const data = await res.json();
             if (!data.success) return;
-
-            // WAC summary
             const wacs = Object.entries(data.wac || {});
             document.getElementById('trader-wac').innerHTML = wacs.length
                 ? wacs.map(([m,v]) => `<div class="resumo-card"><div class="label">WAC ${m} (GBP)</div><div class="valor azul mono">${v}</div><div class="sub">custo médio ponderado</div></div>`).join('')
                 : '';
-
             if (!data.pedidos.length) {
                 document.getElementById('trader-cards').innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-check-circle verde"></i><p>Nenhum pedido pendente.</p></div>';
                 return;
             }
-
             document.getElementById('trader-cards').innerHTML = data.pedidos.map(p => {
                 const urgente = !p.cobre;
                 const margemColor = p.margem_pct === null ? 'amarelo' : p.margem_pct >= 1 ? 'verde' : 'vermelho';
                 return `
-                <div class="trader-card ${urgente ? 'urgente' : 'ok'}">
+                <div class="trader-card ${urgente?'urgente':'ok'}">
                     <div class="trader-header">
                         <div>
                             <span class="tag ${urgente?'tag-vermelho':'tag-verde'}" style="margin-right:6px">${urgente?'⚠ POOL INSUFICIENTE':'✓ COBERTO'}</span>
@@ -685,18 +869,17 @@
                         <div class="trader-row"><span class="trader-lbl">Precisa entregar</span><span class="trader-val mono" style="color:var(--cor-alerta);font-size:15px">${fmtNum(p.v_precisa,2)} ${p.m_precisa}</span></div>
                         <div class="trader-row"><span class="trader-lbl">Pool disponível</span><span class="trader-val mono ${p.cobre?'verde':'vermelho'}">${fmtNum(p.pool_disponivel,2)} ${p.m_precisa}</span></div>
                         <div class="trader-row"><span class="trader-lbl">Recebe do cliente</span><span class="trader-val mono">${fmtNum(p.v_in,2)} ${p.m_in}</span></div>
-                        ${p.cotacao_cliente ? `<div class="trader-row"><span class="trader-lbl">Taxa cliente</span><span class="trader-val mono">${fmtNum(p.cotacao_cliente,4)} ${p.m_out}/${p.m_in}</span></div>` : ''}
-                        ${p.wac_gbp ? `<div class="trader-row"><span class="trader-lbl">WAC atual ${p.m_precisa}</span><span class="trader-val mono azul">${p.wac_gbp} GBP/${p.m_precisa}</span></div>` : ''}
-                        ${p.margem_pct !== null ? `<div class="trader-row"><span class="trader-lbl">Margem c/ WAC atual</span><span class="trader-val ${margemColor}">${p.margem_pct}%</span></div>` : ''}
-                        ${p.beneficiario ? `<div class="trader-row"><span class="trader-lbl">Beneficiário</span><span class="trader-val">${p.beneficiario}</span></div>` : ''}
-                        ${p.codigo_swift ? `<div class="trader-row"><span class="trader-lbl">SWIFT</span><span class="trader-val mono">${p.codigo_swift}</span></div>` : ''}
+                        ${p.cotacao_cliente?`<div class="trader-row"><span class="trader-lbl">Taxa cliente</span><span class="trader-val mono">${fmtNum(p.cotacao_cliente,4)} ${p.m_out}/${p.m_in}</span></div>`:''}
+                        ${p.wac_gbp?`<div class="trader-row"><span class="trader-lbl">WAC atual ${p.m_precisa}</span><span class="trader-val mono azul">${p.wac_gbp} GBP/${p.m_precisa}</span></div>`:''}
+                        ${p.margem_pct!==null?`<div class="trader-row"><span class="trader-lbl">Margem c/ WAC atual</span><span class="trader-val ${margemColor}">${p.margem_pct}%</span></div>`:''}
+                        ${p.beneficiario?`<div class="trader-row"><span class="trader-lbl">Beneficiário</span><span class="trader-val">${p.beneficiario}</span></div>`:''}
+                        ${p.codigo_swift?`<div class="trader-row"><span class="trader-lbl">SWIFT</span><span class="trader-val mono">${p.codigo_swift}</span></div>`:''}
                         <div class="trader-row" style="font-size:11px;color:var(--cor-texto-secundario)"><span>${fmtDate(p.data)}</span><span>${p.id}</span></div>
-
                         <div class="sugestao-box">
                             <div class="sugestao-title"><i class="fas fa-lightbulb"></i> Sugestão — margem mínima 1%</div>
                             <div style="margin-bottom:4px">Receita: <strong>${fmtNum(p.rev_por_unit_gbp,6)} GBP/${p.m_precisa}</strong></div>
                             <div style="margin-bottom:4px">Custo máx: <strong class="verde">${fmtNum(p.max_custo_gbp,6)} GBP/${p.m_precisa}</strong></div>
-                            ${p.m_precisa !== 'GBP' ? `<div>Taxa mín GBP/${p.m_precisa}: <strong class="verde">${fmtNum(p.taxa_min_ref,4)}</strong> <span style="color:var(--cor-texto-secundario)">(precisa de pelo menos ${fmtNum(p.taxa_min_ref,4)} ${p.m_precisa} por GBP)</span></div>` : ''}
+                            ${p.m_precisa!=='GBP'?`<div>Taxa mín GBP/${p.m_precisa}: <strong class="verde">${fmtNum(p.taxa_min_ref,4)}</strong></div>`:''}
                         </div>
                     </div>
                 </div>`;
@@ -706,155 +889,22 @@
         }
     }
 
-    // ── Vender ────────────────────────────────────────────────────────────────
-    let parceiroContasCache = {};
-
-    async function carregarParceirosVenda() {
-        const r = await fetch('/api/loja/parceiros');
-        const d = await r.json();
-        const sel = document.getElementById('vParceiro');
-        sel.innerHTML = '<option value="">Selecione o parceiro…</option>';
-        (d.parceiros || []).forEach(p => sel.innerHTML += `<option value="${p.username}">${p.nome} (${p.username})</option>`);
-    }
-
-    async function onParceiroVendaChange() {
-        const parceiro = document.getElementById('vParceiro').value;
-        const selOrig  = document.getElementById('vContaParcOrigem');
-        const selDest  = document.getElementById('vContaParcDestino');
-        if (!parceiro) {
-            selOrig.innerHTML = '<option value="">Selecione o parceiro primeiro…</option>';
-            selDest.innerHTML = '<option value="">Selecione o parceiro primeiro…</option>';
-            return;
-        }
-        selOrig.innerHTML = '<option value="">Carregando…</option>';
-        selDest.innerHTML = '<option value="">Carregando…</option>';
-        const r = await fetch(`/api/admin/fx/cliente-contas?username=${encodeURIComponent(parceiro)}`);
-        const d = await r.json();
-        parceiroContasCache[parceiro] = d.contas || [];
-        onMoedaVendaChange();
-    }
-
-    function onMoedaVendaChange() {
-        const moeda    = document.getElementById('vMoeda').value;
-        const parceiro = document.getElementById('vParceiro').value;
-        const contas   = parceiroContasCache[parceiro] || [];
-
-        const contasDest = moeda ? contas.filter(c => c.moeda === moeda) : [];
-        const contasOrig = moeda ? contas.filter(c => c.moeda !== moeda) : contas;
-
-        document.getElementById('vLabelDestino').textContent = moeda || 'moeda vendida';
-
-        const selOrig = document.getElementById('vContaParcOrigem');
-        const selDest = document.getElementById('vContaParcDestino');
-        selOrig.innerHTML = '<option value="">Conta origem do parceiro…</option>' +
-            contasOrig.map(c => `<option value="${c.id}" data-moeda="${c.moeda}">${c.id} (${c.moeda}) saldo: ${fmtNum(c.saldo)}</option>`).join('');
-        selDest.innerHTML = `<option value="">Conta ${moeda||'moeda'} do parceiro…</option>` +
-            contasDest.map(c => `<option value="${c.id}">${c.id} (${c.moeda}) saldo: ${fmtNum(c.saldo)}</option>`).join('');
-
-        const selEmp = document.getElementById('vContaEmpresa');
-        const filtradas = moeda ? contasEmpresa.filter(c => c.moeda === moeda) : contasEmpresa;
-        selEmp.innerHTML = '<option value="">Sem débito no pool (posicionamento)</option>' +
-            filtradas.map(c => `<option value="${c.numero}">${c.numero} — ${c.banco||''} (${c.moeda}) saldo: ${fmtNum(c.saldo)}</option>`).join('');
-
-        onContaOrigemChange();
-    }
-
-    function onContaOrigemChange() {
-        const selOrig  = document.getElementById('vContaParcOrigem');
-        const opt      = selOrig.options[selOrig.selectedIndex];
-        const moedaRec = opt && opt.dataset.moeda ? opt.dataset.moeda : '';
-        const moedaVend = document.getElementById('vMoeda').value;
-
-        document.getElementById('vLabelOrigem').textContent = moedaRec || 'moeda recebida';
-        if (moedaRec) {
-            document.getElementById('vLabelTaxaRec').textContent = `Taxa ${moedaRec} por ${moedaVend || 'unidade vendida'}`;
-            document.getElementById('vLabelGBPRec').textContent  = `Taxa GBP por ${moedaRec}`;
-        }
-
-        const rowGBP = document.getElementById('vRowGBP');
-        if (moedaRec && moedaRec !== 'GBP') {
-            rowGBP.classList.add('visible');
-        } else {
-            rowGBP.classList.remove('visible');
-            document.getElementById('vTaxaGBPRec').value = '';
-        }
-
-        calcPreviewVenda();
-    }
-
-    function calcPreviewVenda() {
-        const valor     = parseFloat(document.getElementById('vValor').value) || 0;
-        const taxaRec   = parseFloat(document.getElementById('vTaxaRec').value) || 0;
-        const taxaGBP   = parseFloat(document.getElementById('vTaxaGBPRec').value) || 0;
-        const moedaVend = document.getElementById('vMoeda').value;
-        const selOrig   = document.getElementById('vContaParcOrigem');
-        const opt       = selOrig.options[selOrig.selectedIndex];
-        const moedaRec  = opt && opt.dataset.moeda ? opt.dataset.moeda : '';
-        const box       = document.getElementById('vPreviewBox');
-        if (!valor || !taxaRec || !moedaVend) { box.style.display = 'none'; return; }
-        box.style.display = 'block';
-        const valorRec = valor * taxaRec;
-        document.getElementById('vPvVend').textContent = `${fmtNum(valor, 2)} ${moedaVend}`;
-        document.getElementById('vPvRec').textContent  = `${fmtNum(valorRec, 2)} ${moedaRec || '?'}`;
-        const plRow = document.getElementById('vPvPLRow');
-        if (moedaRec === 'GBP') {
-            plRow.style.display = 'flex';
-            document.getElementById('vPvPL').textContent = `£${fmtNum(valorRec, 4)} receita bruta (P&L depende do WAC)`;
-        } else if (taxaGBP > 0 && moedaRec) {
-            plRow.style.display = 'flex';
-            document.getElementById('vPvPL').textContent = `£${fmtNum(valorRec * taxaGBP, 4)} receita bruta (P&L depende do WAC)`;
-        } else {
-            plRow.style.display = 'none';
-        }
-    }
-
-    async function registrarVenda() {
-        const msg = document.getElementById('vendaMsg');
-        const btn = document.getElementById('btnVender');
-        const payload = {
-            parceiro:               document.getElementById('vParceiro').value,
-            moeda_vendida:          document.getElementById('vMoeda').value,
-            valor_vendido:          parseFloat(document.getElementById('vValor').value) || 0,
-            taxa_recebida_unit:     parseFloat(document.getElementById('vTaxaRec').value) || 0,
-            taxa_gbp_recebida:      parseFloat(document.getElementById('vTaxaGBPRec').value) || 0,
-            conta_empresa:          document.getElementById('vContaEmpresa').value,
-            conta_parceiro_origem:  document.getElementById('vContaParcOrigem').value,
-            conta_parceiro_destino: document.getElementById('vContaParcDestino').value,
-            ordem_captacao_id:      document.getElementById('vOrdemId').value.trim() || null,
-            observacoes:            document.getElementById('vObs').value.trim(),
-        };
-        if (!payload.parceiro || !payload.moeda_vendida || !payload.valor_vendido ||
-            !payload.taxa_recebida_unit || !payload.conta_parceiro_origem || !payload.conta_parceiro_destino) {
-            msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Preencha todos os campos obrigatórios.</span>';
-            return;
-        }
-        btn.disabled = true;
-        msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando…';
+    // ── Parceiros para Fechamentos ────────────────────────────────────────────
+    async function carregarParceiros() {
         try {
-            const res = await fetch('/api/admin/fx/venda', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            });
-            const d = await res.json();
-            if (d.success) {
-                msg.innerHTML = `<span style="color:var(--cor-sucesso)"><i class="fas fa-check-circle"></i> ${d.message}</span>`;
-                ['vValor','vTaxaRec','vTaxaGBPRec','vOrdemId','vObs'].forEach(id => document.getElementById(id).value = '');
-                document.getElementById('vPreviewBox').style.display = 'none';
-                carregarPool();
-            } else {
-                msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${d.message}</span>`;
-            }
-        } catch(e) {
-            msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${e.message}</span>`;
-        }
-        btn.disabled = false;
+            const res = await fetch('/api/loja/parceiros');
+            const d   = await res.json();
+            parceirosCache = d.parceiros || [];
+            const sel = document.getElementById('fParceiro');
+            sel.innerHTML = '<option value="">Selecione o parceiro…</option>';
+            parceirosCache.forEach(p => sel.innerHTML += `<option value="${p.username}">${p.nome} (${p.username})</option>`);
+        } catch(e) { console.error(e); }
     }
 
     // ── Init ──────────────────────────────────────────────────────────────────
     carregarPool();
-    carregarContasEmpresa();
-    carregarParceirosVenda();
+    carregarParceiros();
+    fetch('/api/admin/fx/fechamentos').then(r=>r.json()).then(d => { window._fechData = d.fechamentos || []; });
 </script>
 </body>
 </html>

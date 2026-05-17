@@ -16591,21 +16591,25 @@ def admin_criar_despacho():
         if not r_u.data or r_u.data.get('tipo') != 'admin':
             return jsonify({'success': False, 'message': 'Sem permissão'}), 403
         d = request.get_json()
-        ordem_ids   = d.get('ordem_ids', [])
-        parceiro    = (d.get('parceiro_pagador') or '').strip()
-        observacoes = (d.get('observacoes') or '').strip()
+        ordem_ids    = d.get('ordem_ids', [])
+        parceiro     = (d.get('parceiro_pagador') or '').strip()
+        observacoes  = (d.get('observacoes') or '').strip()
+        fechamento_id = d.get('fechamento_id') or None
+        taxa_gbp_brl  = float(d.get('taxa_gbp_brl') or 0) or None
         if not ordem_ids or not parceiro:
             return jsonify({'success': False, 'message': 'Selecione ordens e informe o parceiro.'}), 400
-        # Buscar ordens selecionadas
+        # Buscar ordens selecionadas (inclui valor_entrada para calcular valor_gbp)
         ordens_data = []
         for oid in ordem_ids:
-            ro = supabase.table('ordens_captacao').select('id,status,valor_saida,moeda_saida').eq('id', oid).single().execute()
+            ro = supabase.table('ordens_captacao').select('id,status,valor_saida,moeda_saida,valor_entrada,moeda_entrada').eq('id', oid).single().execute()
             if ro.data and ro.data['status'] == 'liberada':
                 ordens_data.append(ro.data)
         if not ordens_data:
             return jsonify({'success': False, 'message': 'Nenhuma ordem liberada encontrada.'}), 400
         valor_total = sum(float(o.get('valor_saida', 0)) for o in ordens_data)
         moeda_saida = ordens_data[0].get('moeda_saida', 'BRL')
+        valor_gbp   = round(sum(float(o.get('valor_entrada', 0)) for o in ordens_data
+                                if (o.get('moeda_entrada') or '').upper() == 'GBP'), 4) or None
         # Criar despacho
         ins = supabase.table('despachos').insert({
             'parceiro_pagador': parceiro,
@@ -16614,8 +16618,10 @@ def admin_criar_despacho():
             'qtd_ordens':       len(ordens_data),
             'observacoes':      observacoes,
             'criado_por':       usuario,
+            'fechamento_id':    fechamento_id,
+            'valor_gbp':        valor_gbp,
         }).execute()
-        despacho_id = ins.data[0]['id'] if ins.data else None
+        despacho_id  = ins.data[0]['id'] if ins.data else None
         despacho_num = ins.data[0].get('numero') if ins.data else '?'
         # Vincular ordens ao despacho + atualizar status
         for o in ordens_data:
@@ -16627,11 +16633,141 @@ def admin_criar_despacho():
                 'status': 'despachada',
                 'parceiro_pagador': parceiro,
             }).eq('id', o['id']).execute()
+        # Se taxa_gbp_brl fornecida na criação, calcula P&L imediatamente
+        if taxa_gbp_brl and valor_gbp:
+            try:
+                _calcular_pl_despacho(despacho_id, taxa_gbp_brl, valor_gbp, valor_total, usuario)
+            except Exception:
+                pass
         return jsonify({
             'success': True,
             'message': f'Despacho #{despacho_num} criado — {len(ordens_data)} ordens — {moeda_saida} {valor_total:,.2f}',
             'despacho_id': despacho_id,
             'despacho_numero': despacho_num,
+            'valor_gbp': valor_gbp,
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+def _calcular_pl_despacho(despacho_id, taxa_gbp_brl, valor_gbp, valor_brl, usuario):
+    """Calcula P&L de um despacho e lança nas contas contábeis (DRE). Idempotente: reverte lançamento anterior antes de criar novo."""
+    from datetime import datetime
+    import random
+    receita_brl = valor_gbp * taxa_gbp_brl
+    lucro_brl   = receita_brl - valor_brl
+    lucro_gbp   = lucro_brl / taxa_gbp_brl if taxa_gbp_brl else 0
+
+    dep_prefix  = str(despacho_id)[:8].upper()
+    search_pat  = f'%FX Despacho {dep_prefix}%'
+
+    # ── Reverter lançamentos anteriores deste despacho ──────────────────────
+    try:
+        old_r = supabase.table('transferencias').select('id,tipo,valor').or_(
+            f'descricao_receita.like.{search_pat},descricao_despesa.like.{search_pat}'
+        ).execute()
+        for old in (old_r.data or []):
+            old_val  = float(old.get('valor') or 0)
+            old_tipo = old.get('tipo')
+            conta_rev = 'Ganhos Cambiais' if old_tipo == 'receita' else 'Perdas Cambiais'
+            r_cc = supabase.table('contas_contabeis').select('id,saldo').eq('nome', conta_rev).eq('moeda', 'GBP').single().execute()
+            if r_cc.data:
+                novo_saldo = max(0.0, float(r_cc.data['saldo'] or 0) - old_val)
+                supabase.table('contas_contabeis').update({'saldo': novo_saldo, 'updated_at': datetime.now().isoformat()}).eq('id', r_cc.data['id']).execute()
+            supabase.table('transferencias').delete().eq('id', old['id']).execute()
+    except Exception:
+        pass
+
+    supabase.table('despachos').update({
+        'taxa_gbp_brl': round(taxa_gbp_brl, 6),
+        'lucro_gbp':    round(lucro_gbp, 4),
+        'lucro_brl':    round(lucro_brl, 4),
+    }).eq('id', despacho_id).execute()
+
+    pl_abs = abs(lucro_gbp)
+    if pl_abs < 0.001:
+        return round(lucro_gbp, 4), round(lucro_brl, 4)
+
+    tid = str(random.randint(100000, 999999))
+    while supabase.table('transferencias').select('id').eq('id', tid).execute().data:
+        tid = str(random.randint(100000, 999999))
+
+    desc    = (f'P&L FX Despacho {dep_prefix} | '
+               f'Taxa GBP/BRL={taxa_gbp_brl:.4f} | GBP={valor_gbp:.2f} | BRL={valor_brl:.2f}')
+    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    if lucro_gbp > 0:
+        supabase.table('transferencias').insert({
+            'id': tid, 'tipo': 'receita', 'status': 'completed',
+            'data': now_str, 'moeda': 'GBP', 'valor': pl_abs,
+            'conta_remetente': 'FX_DESPACHO', 'conta_destinatario': 'Ganhos Cambiais',
+            'categoria_receita': 'RECEITAS FINANCEIRAS',
+            'descricao_receita': desc,
+            'executado_por': usuario, 'usuario': usuario,
+            'created_at': datetime.now().isoformat(),
+        }).execute()
+        r_cc = supabase.table('contas_contabeis').select('id,saldo').eq('nome', 'Ganhos Cambiais').eq('moeda', 'GBP').single().execute()
+        if r_cc.data:
+            supabase.table('contas_contabeis').update({'saldo': float(r_cc.data['saldo'] or 0) + pl_abs, 'updated_at': datetime.now().isoformat()}).eq('id', r_cc.data['id']).execute()
+    else:
+        supabase.table('transferencias').insert({
+            'id': tid, 'tipo': 'despesa', 'status': 'completed',
+            'data': now_str, 'moeda': 'GBP', 'valor': pl_abs,
+            'conta_remetente': 'FX_DESPACHO', 'conta_destinatario': 'DESPESA_DESPESAS FINANCEIRAS_Perdas Cambiais',
+            'categoria_despesa': 'DESPESAS FINANCEIRAS',
+            'descricao_despesa': desc,
+            'executado_por': usuario, 'usuario': usuario,
+            'created_at': datetime.now().isoformat(),
+        }).execute()
+        r_cc = supabase.table('contas_contabeis').select('id,saldo').eq('nome', 'Perdas Cambiais').eq('moeda', 'GBP').single().execute()
+        if r_cc.data:
+            supabase.table('contas_contabeis').update({'saldo': float(r_cc.data['saldo'] or 0) + pl_abs, 'updated_at': datetime.now().isoformat()}).eq('id', r_cc.data['id']).execute()
+
+    return round(lucro_gbp, 4), round(lucro_brl, 4)
+
+
+@app.route('/api/admin/despachos/<despacho_id>/taxa-pl', methods=['PATCH'])
+def admin_despacho_taxa_pl(despacho_id):
+    """Define/atualiza taxa GBP/BRL de um despacho e calcula P&L, lançando no DRE."""
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') != 'admin':
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        d = request.get_json()
+        taxa_gbp_brl = float(d.get('taxa_gbp_brl') or 0)
+        if taxa_gbp_brl <= 0:
+            return jsonify({'success': False, 'message': 'Taxa GBP/BRL inválida'}), 400
+        # Buscar despacho
+        dep_r = supabase.table('despachos').select('id,valor_total,valor_gbp,moeda_saida').eq('id', despacho_id).single().execute()
+        if not dep_r.data:
+            return jsonify({'success': False, 'message': 'Despacho não encontrado'}), 404
+        dep = dep_r.data
+        valor_brl = float(dep.get('valor_total') or 0)
+        valor_gbp = float(dep.get('valor_gbp') or 0)
+        # Se valor_gbp não foi salvo na criação, busca das ordens agora
+        if not valor_gbp:
+            links = supabase.table('despacho_ordens').select('ordem_id').eq('despacho_id', despacho_id).execute()
+            ids_ordens = [l['ordem_id'] for l in (links.data or [])]
+            if ids_ordens:
+                ordens_r = supabase.table('ordens_captacao').select('valor_entrada,moeda_entrada').in_('id', ids_ordens).execute()
+                valor_gbp = round(sum(float(o.get('valor_entrada', 0)) for o in (ordens_r.data or [])
+                                      if (o.get('moeda_entrada') or '').upper() == 'GBP'), 4)
+                if valor_gbp:
+                    supabase.table('despachos').update({'valor_gbp': valor_gbp}).eq('id', despacho_id).execute()
+        if not valor_gbp:
+            return jsonify({'success': False, 'message': 'Valor GBP das ordens não encontrado. As ordens deste despacho têm moeda de entrada GBP?'}), 400
+        if not valor_brl:
+            return jsonify({'success': False, 'message': 'Valor BRL (total) do despacho não encontrado'}), 400
+        lucro_gbp, lucro_brl = _calcular_pl_despacho(despacho_id, taxa_gbp_brl, valor_gbp, valor_brl, usuario)
+        sinal = '+' if lucro_gbp >= 0 else ''
+        return jsonify({
+            'success': True,
+            'message': f'P&L calculado: {sinal}£{lucro_gbp:.2f} | {sinal}R${lucro_brl:.2f} | Taxa {taxa_gbp_brl:.4f} BRL/GBP',
+            'lucro_gbp': lucro_gbp, 'lucro_brl': lucro_brl,
+            'valor_gbp': valor_gbp, 'taxa_gbp_brl': taxa_gbp_brl,
         })
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
@@ -21333,6 +21469,195 @@ def fx_registrar_venda():
         })
     except Exception as e:
         _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ============================================================
+#  FX FECHAMENTOS & COBERTURAS
+# ============================================================
+# Requires: migrations/002_fx_fechamentos.sql
+
+
+@app.route('/api/admin/fx/fechamentos', methods=['GET'])
+def fx_listar_fechamentos():
+    try:
+        if not session.get('username'):
+            return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+        r = supabase.table('fx_fechamentos').select('*').order('created_at', desc=True).execute()
+        fechamentos = r.data or []
+        for f in fechamentos:
+            fid = f['id']
+            cob_r = supabase.table('fx_coberturas').select('valor_usd,valor_gbp,taxa_gbp_usd,created_at').eq('fechamento_id', fid).execute()
+            f['coberturas'] = cob_r.data or []
+            total_cob_usd = round(sum(float(c.get('valor_usd', 0)) for c in f['coberturas']), 2)
+            total_cob_gbp = round(sum(float(c.get('valor_gbp', 0)) for c in f['coberturas']), 2)
+            f['total_coberto_usd'] = total_cob_usd
+            f['total_coberto_gbp'] = total_cob_gbp
+            # Implicit effective GBP/BRL = (GBP spent per USD) / taxa_usd_brl
+            taxa_usd_brl = float(f.get('taxa_usd_brl') or 0)
+            if total_cob_gbp > 0 and total_cob_usd > 0 and taxa_usd_brl > 0:
+                # BRL per GBP = (USD / GBP) × (BRL / USD)
+                f['taxa_gbp_brl_implicita'] = round((total_cob_usd / total_cob_gbp) * taxa_usd_brl, 4)
+            else:
+                f['taxa_gbp_brl_implicita'] = None
+        return jsonify({'success': True, 'fechamentos': fechamentos})
+    except Exception as e:
+        _sec_log.debug('traceback suprimido em producao', exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/admin/fx/fechamentos', methods=['POST'])
+def fx_criar_fechamento():
+    try:
+        from datetime import datetime
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+        ck = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not ck.data or ck.data.get('tipo') != 'admin':
+            return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+        d = request.get_json()
+        parceiro     = (d.get('parceiro_username') or '').strip()
+        taxa_usd_brl = float(d.get('taxa_usd_brl') or 0)
+        valor_usd    = float(d.get('valor_usd_estimado') or 0)
+        obs          = (d.get('observacoes') or '').strip()
+        if not parceiro or taxa_usd_brl <= 0 or valor_usd <= 0:
+            return jsonify({'success': False, 'message': 'Parceiro, taxa USD/BRL e valor USD são obrigatórios'}), 400
+        now = datetime.utcnow().isoformat()
+        ins = supabase.table('fx_fechamentos').insert({
+            'executado_por': usuario, 'parceiro_username': parceiro,
+            'taxa_usd_brl': taxa_usd_brl, 'valor_usd_estimado': valor_usd,
+            'status': 'aberto', 'observacoes': obs,
+            'created_at': now, 'updated_at': now,
+        }).execute()
+        fid = ins.data[0]['id'] if ins.data else None
+        return jsonify({'success': True, 'id': fid,
+                        'message': f'Fechamento criado — {parceiro} @ {taxa_usd_brl:.4f} USD/BRL'})
+    except Exception as e:
+        _sec_log.debug('traceback suprimido em producao', exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/admin/fx/fechamentos/<fechamento_id>', methods=['PATCH'])
+def fx_atualizar_fechamento(fechamento_id):
+    try:
+        from datetime import datetime
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+        d    = request.get_json()
+        upd  = {'updated_at': datetime.utcnow().isoformat()}
+        taxa = d.get('taxa_gbp_brl_real')
+        if taxa:
+            upd['taxa_gbp_brl_real'] = float(taxa)
+        new_status = d.get('status')
+        if new_status in ('aberto', 'coberto', 'fechado'):
+            upd['status'] = new_status
+        if len(upd) <= 1:
+            return jsonify({'success': False, 'message': 'Nenhum campo para atualizar'}), 400
+        supabase.table('fx_fechamentos').update(upd).eq('id', fechamento_id).execute()
+        # On closing: register pool_venda to keep WAC correct
+        if new_status == 'fechado':
+            f_r = supabase.table('fx_fechamentos').select('*').eq('id', fechamento_id).single().execute()
+            if f_r.data:
+                fdata = f_r.data
+                cob_r = supabase.table('fx_coberturas').select('valor_usd,valor_gbp').eq('fechamento_id', fechamento_id).execute()
+                total_usd = sum(float(c.get('valor_usd', 0)) for c in (cob_r.data or []))
+                total_gbp = sum(float(c.get('valor_gbp', 0)) for c in (cob_r.data or []))
+                taxa_gbp_rec = round(total_gbp / total_usd, 6) if total_usd > 0 else 0
+                supabase.table('pool_vendas').insert({
+                    'data': datetime.utcnow().isoformat(),
+                    'moeda': 'USD',
+                    'valor_vendido': total_usd or float(fdata.get('valor_usd_estimado', 0)),
+                    'moeda_recebida': 'BRL',
+                    'parceiro': fdata.get('parceiro_username', ''),
+                    'taxa_brl_unit': float(fdata.get('taxa_usd_brl', 0)),
+                    'taxa_gbp_recebida': taxa_gbp_rec,
+                    'pl_realizado_gbp': 0,
+                    'executado_por': usuario,
+                    'observacoes': f"Fechamento {str(fechamento_id)[:8].upper()} encerrado",
+                }).execute()
+        return jsonify({'success': True, 'message': 'Fechamento atualizado'})
+    except Exception as e:
+        _sec_log.debug('traceback suprimido em producao', exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/admin/fx/coberturas', methods=['POST'])
+def fx_registrar_cobertura():
+    """Cobertura: compra de USD para cobrir fechamento. Cria pool_compras (WAC) + fx_coberturas."""
+    try:
+        from datetime import datetime
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+        ck = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not ck.data or ck.data.get('tipo') != 'admin':
+            return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+        d = request.get_json()
+        fechamento_id = d.get('fechamento_id') or None
+        valor_usd     = float(d.get('valor_usd') or 0)
+        valor_gbp     = float(d.get('valor_gbp') or 0)
+        taxa_gbp_usd  = float(d.get('taxa_gbp_usd') or (valor_gbp / valor_usd if valor_usd else 0))
+        conta_deb     = (d.get('conta_debitada') or '').strip()
+        conta_cred    = (d.get('conta_creditada') or '').strip()
+        obs           = (d.get('observacoes') or '').strip()
+        if valor_usd <= 0 or valor_gbp <= 0:
+            return jsonify({'success': False, 'message': 'Valor USD e Valor GBP são obrigatórios'}), 400
+        if not conta_deb or not conta_cred:
+            return jsonify({'success': False, 'message': 'Conta debitada e creditada são obrigatórias'}), 400
+        now = datetime.utcnow().isoformat()
+        # 1. pool_compras — keeps WAC working
+        pool_rec = {
+            'data': now, 'moeda_comprada': 'USD', 'valor_comprado': valor_usd,
+            'moeda_paga': 'GBP', 'valor_pago': valor_gbp,
+            'taxa': round(valor_usd / valor_gbp, 6),
+            'taxa_em_gbp': round(taxa_gbp_usd, 6),
+            'fornecedor': obs or 'Cobertura FX',
+            'conta_debitada': conta_deb, 'conta_creditada': conta_cred,
+            'executado_por': usuario, 'observacoes': obs,
+        }
+        pool_ins = supabase.table('pool_compras').insert(pool_rec).execute()
+        pool_id  = pool_ins.data[0]['id'] if pool_ins.data else None
+        # 2. Update account balances
+        r_deb = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_deb).single().execute()
+        if not r_deb.data:
+            return jsonify({'success': False, 'message': f'Conta {conta_deb} não encontrada'}), 404
+        r_cred = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_cred).single().execute()
+        if not r_cred.data:
+            return jsonify({'success': False, 'message': f'Conta {conta_cred} não encontrada'}), 404
+        supabase.table('contas_bancarias_empresa').update({'saldo': float(r_deb.data['saldo'] or 0) - valor_gbp}).eq('numero', conta_deb).execute()
+        supabase.table('contas_bancarias_empresa').update({'saldo': float(r_cred.data['saldo'] or 0) + valor_usd}).eq('numero', conta_cred).execute()
+        # 3. fx_coberturas
+        supabase.table('fx_coberturas').insert({
+            'fechamento_id': fechamento_id, 'tipo': d.get('tipo', 'compra_banco'),
+            'valor_usd': valor_usd, 'valor_gbp': valor_gbp,
+            'taxa_gbp_usd': round(taxa_gbp_usd, 6),
+            'conta_debitada': conta_deb, 'conta_creditada': conta_cred,
+            'executado_por': usuario, 'observacoes': obs,
+            'pool_compra_id': str(pool_id) if pool_id else None,
+            'created_at': now,
+        }).execute()
+        # 4. Update fechamento: recalculate taxa_gbp_brl_real + auto status → coberto
+        if fechamento_id:
+            f_r = supabase.table('fx_fechamentos').select('valor_usd_estimado,taxa_usd_brl,status').eq('id', fechamento_id).single().execute()
+            if f_r.data:
+                all_cob = supabase.table('fx_coberturas').select('valor_usd,valor_gbp').eq('fechamento_id', fechamento_id).execute()
+                tot_usd = sum(float(c.get('valor_usd', 0)) for c in (all_cob.data or []))
+                tot_gbp = sum(float(c.get('valor_gbp', 0)) for c in (all_cob.data or []))
+                taxa_u_brl = float(f_r.data.get('taxa_usd_brl', 0))
+                f_upd = {'updated_at': now}
+                if tot_gbp > 0 and taxa_u_brl > 0:
+                    # 1 GBP buys (tot_usd/tot_gbp) USD, each USD worth taxa_usd_brl BRL
+                    f_upd['taxa_gbp_brl_real'] = round((tot_usd / tot_gbp) * taxa_u_brl, 4)
+                val_est = float(f_r.data.get('valor_usd_estimado', 0))
+                if f_r.data['status'] == 'aberto' and val_est > 0 and tot_usd >= val_est * 0.95:
+                    f_upd['status'] = 'coberto'
+                supabase.table('fx_fechamentos').update(f_upd).eq('id', fechamento_id).execute()
+        return jsonify({'success': True,
+                        'message': f'Cobertura registrada: {valor_usd:.2f} USD @ {taxa_gbp_usd:.6f} GBP/USD (£{valor_gbp:.2f})'})
+    except Exception as e:
+        _sec_log.debug('traceback suprimido em producao', exc_info=_IS_DEBUG)
         return jsonify({'success': False, 'message': _err(e)}), 500
 
 
