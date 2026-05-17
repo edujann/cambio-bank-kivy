@@ -977,16 +977,34 @@
         // ============================================
         // CARREGAR DADOS DO DASHBOARD ADMIN
         // ============================================
-        
+
+        let _adAudioCtx = null;
+        function notifySound() {
+            try {
+                if (!_adAudioCtx) _adAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = _adAudioCtx.createOscillator();
+                const gain = _adAudioCtx.createGain();
+                osc.connect(gain); gain.connect(_adAudioCtx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, _adAudioCtx.currentTime);
+                osc.frequency.setValueAtTime(1100, _adAudioCtx.currentTime + 0.12);
+                gain.gain.setValueAtTime(0.08, _adAudioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, _adAudioCtx.currentTime + 0.4);
+                osc.start(_adAudioCtx.currentTime);
+                osc.stop(_adAudioCtx.currentTime + 0.4);
+            } catch(e) {}
+        }
+        let _prevBadgeChamados = -1;
         async function carregarBadgeChamados() {
             try {
                 const r = await fetch('/api/chamados/badges');
                 const d = await r.json();
-                if (d.success && d.abertos > 0) {
-                    const el = document.getElementById('badgeChamadosAdmin');
-                    el.textContent = d.abertos;
-                    el.style.display = 'inline';
-                }
+                if (!d.success) return;
+                const n = d.nao_lidos || 0;
+                const el = document.getElementById('badgeChamadosAdmin');
+                if (el) { el.textContent = n; el.style.display = n > 0 ? 'inline' : 'none'; }
+                if (_prevBadgeChamados >= 0 && n > _prevBadgeChamados) notifySound();
+                _prevBadgeChamados = n;
             } catch(e) {}
         }
 
@@ -1147,7 +1165,7 @@
             carregarDashboardAdmin();
             carregarBadgeChamados();
             setInterval(carregarDashboardAdmin, 30000);
-            setInterval(carregarBadgeChamados, 60000);
+            setInterval(carregarBadgeChamados, 15000);
             iniciarAlertasCambio();
         });
 

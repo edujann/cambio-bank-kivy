@@ -21883,9 +21883,11 @@ def api_chamados_badges():
         user_info = supabase.table('usuarios').select('tipo').eq('username', username).single().execute()
         tipo = user_info.data.get('tipo', 'cliente') if user_info.data else 'cliente'
         
-        if tipo == 'admin':
-            res = supabase.table('chamados').select('id', count='exact').in_('status', ['aberto', 'em_atendimento', 'aguardando_cliente']).execute()
-            return jsonify({'success': True, 'abertos': res.count or 0})
+        if tipo in ('admin', 'backoffice', 'backoffice_gerente'):
+            res = supabase.table('chamados_mensagens').select('id', count='exact')\
+                .eq('lida_admin', False).eq('autor_tipo', 'cliente').execute()
+            nao_lidos = res.count or 0
+            return jsonify({'success': True, 'nao_lidos': nao_lidos})
         else:
             res = supabase.table('chamados_mensagens')\
                 .select('id', count='exact')\
